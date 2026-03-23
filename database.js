@@ -1,54 +1,18 @@
+const fs = require("fs");
 const path = require("path");
-const sqlite3 = require("sqlite3").verbose();
+const initSqlJs = require("sql.js");
 
 const databasePath = process.env.VERCEL
   ? path.join("/tmp", "database.sqlite")
   : path.join(__dirname, "database.sqlite");
-const db = new sqlite3.Database(databasePath);
 
-function run(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function onRun(error) {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve({
-        lastID: this.lastID,
-        changes: this.changes,
-      });
-    });
-  });
-}
-
-function get(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.get(sql, params, (error, row) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve(row || null);
-    });
-  });
-}
-
-function all(sql, params = []) {
-  return new Promise((resolve, reject) => {
-    db.all(sql, params, (error, rows) => {
-      if (error) {
-        reject(error);
-        return;
-      }
-
-      resolve(rows || []);
-    });
-  });
-}
+let SQL;
+let db;
+let initPromise;
 
 async function initializeDatabase() {
+  await ensureReady();
+
   await run(`
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
@@ -94,9 +58,98 @@ async function initializeDatabase() {
   `);
 }
 
+async function run(sql, params = []) {
+  await ensureReady();
+  const statement = db.prepare(sql);
+
+  try {
+    statement.bind(params);
+    while (statement.step()) {
+      // Run until completion for write queries.
+    }
+  } finally {
+    statement.free();
+  }
+
+  const changes = singleValue("SELECT changes() AS value");
+  const lastID = singleValue("SELECT last_insert_rowid() AS value");
+  persistDatabase();
+
+  return {
+    lastID,
+    changes,
+  };
+}
+
+async function get(sql, params = []) {
+  await ensureReady();
+  const rows = executeQuery(sql, params);
+  return rows[0] || null;
+}
+
+async function all(sql, params = []) {
+  await ensureReady();
+  return executeQuery(sql, params);
+}
+
+async function bootDatabase() {
+  SQL = await initSqlJs({
+    locateFile: (file) => path.join(__dirname, "node_modules", "sql.js", "dist", file),
+  });
+
+  if (fs.existsSync(databasePath)) {
+    const fileBuffer = fs.readFileSync(databasePath);
+    db = new SQL.Database(fileBuffer);
+    return;
+  }
+
+  db = new SQL.Database();
+  persistDatabase();
+}
+
+function executeQuery(sql, params = []) {
+  const statement = db.prepare(sql);
+  const rows = [];
+
+  try {
+    statement.bind(params);
+
+    while (statement.step()) {
+      rows.push(statement.getAsObject());
+    }
+  } finally {
+    statement.free();
+  }
+
+  return rows;
+}
+
+function singleValue(sql) {
+  const result = db.exec(sql);
+
+  if (!result.length || !result[0].values.length) {
+    return 0;
+  }
+
+  return result[0].values[0][0];
+}
+
+function persistDatabase() {
+  const data = db.export();
+  fs.writeFileSync(databasePath, Buffer.from(data));
+}
+
+async function ensureReady() {
+  if (!initPromise) {
+    initPromise = bootDatabase();
+  }
+
+  await initPromise;
+}
+
 module.exports = {
   all,
-  db,
+  db: () => db,
   get,
   initializeDatabase,
   run,
