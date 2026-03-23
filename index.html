@@ -91,9 +91,13 @@
                 src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=900&q=80"
                 alt="Massagem relaxante"
               />
-              <div class="service-card-content">
+              <div class="service-card-content" data-service-card="Massagem Relaxante Luxor">
                 <span class="service-tag">Relaxante</span>
                 <h4>Massagem Relaxante Luxor</h4>
+                <div class="service-meta">
+                  <span>60 min</span>
+                  <span>R$ 180</span>
+                </div>
                 <p>Alivio rapido do estresse com ambiente acolhedor e toque restaurador.</p>
                 <button class="service-select-button" data-service="Massagem Relaxante Luxor" type="button">
                   Quero esta experiencia
@@ -106,9 +110,13 @@
                 src="https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=80"
                 alt="Massagem terapeutica"
               />
-              <div class="service-card-content">
+              <div class="service-card-content" data-service-card="Massagem Terapeutica Premium">
                 <span class="service-tag">Terapeutica</span>
                 <h4>Massagem Terapeutica Premium</h4>
+                <div class="service-meta">
+                  <span>75 min</span>
+                  <span>R$ 240</span>
+                </div>
                 <p>Atendimento para tensoes musculares, dores localizadas e recuperacao corporal.</p>
                 <button class="service-select-button" data-service="Massagem Terapeutica Premium" type="button">
                   Agendar agora
@@ -121,9 +129,13 @@
                 src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80"
                 alt="Massagem com pedras quentes"
               />
-              <div class="service-card-content">
+              <div class="service-card-content" data-service-card="Pedras Quentes e Aromas">
                 <span class="service-tag">Ritual Luxor</span>
                 <h4>Pedras Quentes e Aromas</h4>
+                <div class="service-meta">
+                  <span>90 min</span>
+                  <span>R$ 320</span>
+                </div>
                 <p>Uma experiencia sofisticada para quem busca relaxamento profundo e exclusividade.</p>
                 <button class="service-select-button" data-service="Pedras Quentes e Aromas" type="button">
                   Reservar ritual
@@ -271,6 +283,37 @@
                   O painel admin permite definir o link de pagamento do Mercado Pago para
                   direcionar o cliente logo apos a reserva.
                 </p>
+              </div>
+
+              <div class="booking-panel-card" id="bookingSummaryCard">
+                <span class="panel-kicker">Resumo da reserva</span>
+                <h4>Visualize o atendimento antes de confirmar</h4>
+                <div class="summary-list">
+                  <div class="summary-item">
+                    <span>Servico</span>
+                    <strong id="summaryService">Selecione uma massagem</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Duracao</span>
+                    <strong id="summaryDuration">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Valor</span>
+                    <strong id="summaryPrice">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Pagamento</span>
+                    <strong id="summaryPayment">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Local</span>
+                    <strong id="summaryRegion">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Horario</span>
+                    <strong id="summaryDateTime">-</strong>
+                  </div>
+                </div>
               </div>
 
               <div class="booking-panel-card confirmation-card hidden" id="confirmationCard">
@@ -429,6 +472,7 @@
       </div>
     </div>
 
+    <script src="site-config.js"></script>
     <script src="script.js"></script>
   </body>
 </html>

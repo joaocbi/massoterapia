@@ -1,30 +1,25 @@
-const STORAGE_KEYS = {
-  appointments: "luxor_massoterapia_appointments",
-  settings: "luxor_massoterapia_settings",
-};
-
+const APP_CONFIG = window.LUXOR_CONFIG || {};
 const DEFAULT_SETTINGS = {
   businessWhatsapp: "5511999999999",
   mercadoPagoCheckout: "https://www.mercadopago.com.br/",
   pixKey: "",
   businessAddress: "",
 };
-
-const ADMIN_PASSWORD = "luxor2026";
-const AVAILABLE_TIMES = [
-  "09:00",
-  "10:30",
-  "12:00",
-  "14:00",
-  "15:30",
-  "17:00",
-  "18:30",
-  "20:00",
-];
+const AVAILABLE_TIMES = ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00", "18:30", "20:00"];
+const SERVICE_DETAILS = {
+  "Massagem Relaxante Luxor": { duration: "60 min", price: 180 },
+  "Massagem Terapeutica Premium": { duration: "75 min", price: 240 },
+  "Pedras Quentes e Aromas": { duration: "90 min", price: 320 },
+  "Drenagem Linfatica": { duration: "60 min", price: 210 },
+  "Massagem Modeladora": { duration: "50 min", price: 190 },
+  "Atendimento Personalizado": { duration: "Sob consulta", price: 260 },
+};
 
 const state = {
-  appointments: loadAppointments(),
-  settings: loadSettings(),
+  adminPassword: "",
+  appointments: [],
+  availability: [],
+  settings: { ...DEFAULT_SETTINGS },
   filters: {
     search: "",
     status: "all",
@@ -55,30 +50,44 @@ const businessAddressField = document.getElementById("businessAddress");
 const appointmentSearchField = document.getElementById("appointmentSearch");
 const appointmentStatusFilterField = document.getElementById("appointmentStatusFilter");
 const paymentStatusFilterField = document.getElementById("paymentStatusFilter");
+const serviceRegionField = document.getElementById("serviceRegion");
+const summaryService = document.getElementById("summaryService");
+const summaryDuration = document.getElementById("summaryDuration");
+const summaryPrice = document.getElementById("summaryPrice");
+const summaryPayment = document.getElementById("summaryPayment");
+const summaryRegion = document.getElementById("summaryRegion");
+const summaryDateTime = document.getElementById("summaryDateTime");
 
 console.log("[Luxor] Site initialized");
-console.log("[Luxor] Loaded appointments:", state.appointments);
-console.log("[Luxor] Loaded settings:", state.settings);
+console.log("[Luxor] App config:", APP_CONFIG);
 
-init();
+init().catch((error) => {
+  console.error("[Luxor] Failed to initialize application", error);
+  window.alert("Nao foi possivel inicializar o sistema. Verifique a API.");
+});
 
-function init() {
+async function init() {
   setMinimumDate();
-  renderTimeOptions();
-  renderAdminStats();
-  renderAppointments();
-  hydrateSettingsFields();
   bindEvents();
-  refreshWhatsappLinks();
+  await loadPublicData();
+  hydrateSettingsFields();
+  updateBookingSummary();
 }
 
 function bindEvents() {
   bookingForm.addEventListener("submit", handleBookingSubmit);
   dateField.addEventListener("change", renderTimeOptions);
+  dateField.addEventListener("change", updateBookingSummary);
+  timeField.addEventListener("change", updateBookingSummary);
+  massageTypeField.addEventListener("change", updateBookingSummary);
+  paymentMethodField.addEventListener("change", updateBookingSummary);
+  serviceRegionField.addEventListener("input", updateBookingSummary);
+
   document.querySelectorAll(".service-select-button").forEach((button) => {
     button.addEventListener("click", () => {
       const selectedService = button.dataset.service || "";
       massageTypeField.value = selectedService;
+      updateBookingSummary();
       document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
       console.log("[Luxor] Service pre-selected:", selectedService);
     });
@@ -100,12 +109,11 @@ function bindEvents() {
   });
 }
 
-function handleBookingSubmit(event) {
+async function handleBookingSubmit(event) {
   event.preventDefault();
 
   const formData = new FormData(bookingForm);
-  const appointment = {
-    id: crypto.randomUUID(),
+  const bookingPayload = {
     customerName: formData.get("customerName")?.toString().trim(),
     customerPhone: formData.get("customerPhone")?.toString().trim(),
     customerEmail: formData.get("customerEmail")?.toString().trim(),
@@ -115,45 +123,41 @@ function handleBookingSubmit(event) {
     paymentMethod: formData.get("paymentMethod")?.toString().trim(),
     serviceRegion: formData.get("serviceRegion")?.toString().trim(),
     customerNotes: formData.get("customerNotes")?.toString().trim(),
-    status: "confirmed",
-    paymentStatus: "pending",
-    createdAt: new Date().toISOString(),
   };
 
-  console.log("[Luxor] Booking submit payload:", appointment);
+  console.log("[Luxor] Booking submit payload:", bookingPayload);
 
-  if (!isSlotAvailable(appointment.appointmentDate, appointment.appointmentTime)) {
-    window.alert("Este horario ja foi reservado. Escolha outro horario.");
-    console.warn("[Luxor] Attempted duplicate slot:", appointment.appointmentDate, appointment.appointmentTime);
-    return;
-  }
+  try {
+    const result = await apiRequest("/api/appointments", {
+      method: "POST",
+      body: bookingPayload,
+    });
 
-  state.appointments.unshift(appointment);
-  persistAppointments();
-  renderTimeOptions();
-  renderAdminStats();
-  renderAppointments();
-  showConfirmation(appointment);
-  bookingForm.reset();
-  setMinimumDate();
+    await loadPublicData();
+    if (state.adminPassword) {
+      await loadAdminAppointments();
+      renderAdminStats();
+      renderAppointments();
+    }
 
-  if (appointment.paymentMethod === "Mercado Pago") {
-    console.log("[Luxor] Mercado Pago selected, preparing checkout link");
-    mercadoPagoLink.classList.remove("hidden");
-    mercadoPagoLink.href = state.settings.mercadoPagoCheckout;
-  } else {
-    mercadoPagoLink.classList.add("hidden");
+    showConfirmation(result.appointment, result.checkoutUrl);
+    bookingForm.reset();
+    setMinimumDate();
+    updateBookingSummary();
+  } catch (error) {
+    console.error("[Luxor] Failed to create booking", error);
+    window.alert(error.message || "Nao foi possivel concluir o agendamento.");
   }
 }
 
-function showConfirmation(appointment) {
+function showConfirmation(appointment, checkoutUrl) {
   const readableDate = formatDate(appointment.appointmentDate);
   const message = buildWhatsappMessage(appointment);
 
   confirmationTitle.textContent = `${appointment.customerName}, seu horario foi confirmado.`;
   confirmationText.textContent =
     `${appointment.massageType} agendada para ${readableDate} as ${appointment.appointmentTime}. ` +
-    `Pagamento escolhido: ${appointment.paymentMethod}.`;
+    `Pagamento escolhido: ${appointment.paymentMethod}. Valor: ${formatCurrency(appointment.amount)}.`;
 
   if (appointment.paymentMethod === "Pix" && state.settings.pixKey) {
     confirmationText.textContent += ` Chave Pix para pagamento: ${state.settings.pixKey}.`;
@@ -162,9 +166,18 @@ function showConfirmation(appointment) {
   if (appointment.serviceRegion) {
     confirmationText.textContent += ` Local: ${appointment.serviceRegion}.`;
   }
+
   confirmationWhatsappLink.href = buildWhatsappUrl(state.settings.businessWhatsapp, message);
   confirmationCard.classList.remove("hidden");
   confirmationCard.scrollIntoView({ behavior: "smooth", block: "center" });
+
+  if (appointment.paymentMethod === "Mercado Pago" && checkoutUrl) {
+    mercadoPagoLink.classList.remove("hidden");
+    mercadoPagoLink.href = checkoutUrl;
+  } else {
+    mercadoPagoLink.classList.add("hidden");
+    mercadoPagoLink.href = "#";
+  }
 
   console.log("[Luxor] Confirmation displayed for booking:", appointment.id);
 }
@@ -172,7 +185,7 @@ function showConfirmation(appointment) {
 function renderTimeOptions() {
   const selectedDate = dateField.value;
   const occupiedTimes = new Set(
-    state.appointments
+    state.availability
       .filter((item) => item.appointmentDate === selectedDate && item.status !== "cancelled")
       .map((item) => item.appointmentTime)
   );
@@ -225,6 +238,8 @@ function renderAppointments() {
           </div>
           <h5>${appointment.customerName} - ${appointment.massageType}</h5>
           <p>${formatDate(appointment.appointmentDate)} as ${appointment.appointmentTime}</p>
+          <p>Duracao: ${appointment.duration || getServiceDuration(appointment.massageType)}</p>
+          <p>Valor: ${formatCurrency(appointment.amount || getServiceAmount(appointment.massageType))}</p>
           <p>Pagamento: ${appointment.paymentMethod}</p>
           <p>Local: ${appointment.serviceRegion || state.settings.businessAddress || "Nao informado"}</p>
           <p>WhatsApp: ${appointment.customerPhone}</p>
@@ -243,13 +258,15 @@ function renderAppointments() {
   });
 
   appointmentsList.querySelectorAll("button[data-action]").forEach((button) => {
-    button.addEventListener("click", () => handleAppointmentAction(button.dataset.action, button.dataset.id));
+    button.addEventListener("click", async () => {
+      await handleAppointmentAction(button.dataset.action, button.dataset.id);
+    });
   });
 
   console.log("[Luxor] Appointment list rendered");
 }
 
-function handleAppointmentAction(action, appointmentId) {
+async function handleAppointmentAction(action, appointmentId) {
   const appointment = state.appointments.find((item) => item.id === appointmentId);
 
   if (!appointment) {
@@ -259,28 +276,23 @@ function handleAppointmentAction(action, appointmentId) {
 
   console.log("[Luxor] Appointment action:", action, appointment);
 
-  if (action === "confirm") {
-    appointment.status = "confirmed";
-  }
-
-  if (action === "paid") {
-    appointment.paymentStatus = "paid";
-  }
-
-  if (action === "cancel") {
-    appointment.status = "cancelled";
-  }
-
   if (action === "whatsapp") {
     const url = buildWhatsappUrl(state.settings.businessWhatsapp, buildWhatsappMessage(appointment));
     window.open(url, "_blank", "noopener,noreferrer");
     return;
   }
 
-  persistAppointments();
-  renderTimeOptions();
-  renderAdminStats();
-  renderAppointments();
+  const payload = {
+    status: action === "cancel" ? "cancelled" : "confirmed",
+    paymentStatus: action === "paid" ? "paid" : appointment.paymentStatus,
+  };
+
+  try {
+    await updateAppointment(appointmentId, payload);
+  } catch (error) {
+    console.error("[Luxor] Failed to update appointment", error);
+    window.alert(error.message || "Nao foi possivel atualizar o agendamento.");
+  }
 }
 
 function renderAdminStats() {
@@ -288,6 +300,12 @@ function renderAdminStats() {
   const confirmed = state.appointments.filter((item) => item.status === "confirmed").length;
   const cancelled = state.appointments.filter((item) => item.status === "cancelled").length;
   const paid = state.appointments.filter((item) => item.paymentStatus === "paid").length;
+  const estimatedRevenue = state.appointments
+    .filter((item) => item.status === "confirmed")
+    .reduce((totalAmount, item) => totalAmount + (item.amount || getServiceAmount(item.massageType)), 0);
+  const paidRevenue = state.appointments
+    .filter((item) => item.paymentStatus === "paid")
+    .reduce((totalAmount, item) => totalAmount + (item.amount || getServiceAmount(item.massageType)), 0);
 
   adminStats.innerHTML = `
     <article>
@@ -305,6 +323,14 @@ function renderAdminStats() {
     <article>
       <strong>${paid}</strong>
       <span>Pagas</span>
+    </article>
+    <article>
+      <strong>${formatCurrency(estimatedRevenue)}</strong>
+      <span>Receita prevista</span>
+    </article>
+    <article>
+      <strong>${formatCurrency(paidRevenue)}</strong>
+      <span>Receita recebida</span>
     </article>
   `;
 
@@ -327,30 +353,46 @@ function closeAdminModal() {
   console.log("[Luxor] Admin modal closed");
 }
 
-function handleAdminLogin() {
-  if (adminPasswordField.value !== ADMIN_PASSWORD) {
-    window.alert("Senha incorreta.");
-    console.warn("[Luxor] Invalid admin password attempt");
-    return;
-  }
+async function handleAdminLogin() {
+  state.adminPassword = adminPasswordField.value.trim() || APP_CONFIG.adminPassword || "";
 
-  adminLogin.classList.add("hidden");
-  adminContent.classList.remove("hidden");
-  console.log("[Luxor] Admin login successful");
+  try {
+    await Promise.all([loadSettings(), loadAdminAppointments()]);
+    hydrateSettingsFields();
+    adminLogin.classList.add("hidden");
+    adminContent.classList.remove("hidden");
+    renderAdminStats();
+    renderAppointments();
+    console.log("[Luxor] Admin login successful");
+  } catch (error) {
+    state.adminPassword = "";
+    window.alert("Senha incorreta ou API indisponivel.");
+    console.warn("[Luxor] Invalid admin login", error);
+  }
 }
 
-function saveSettings() {
-  state.settings = {
+async function saveSettings() {
+  const payload = {
     businessWhatsapp: sanitizeWhatsappNumber(businessWhatsappField.value),
     mercadoPagoCheckout: mercadoPagoCheckoutField.value.trim() || DEFAULT_SETTINGS.mercadoPagoCheckout,
     pixKey: pixKeyField.value.trim(),
     businessAddress: businessAddressField.value.trim(),
   };
 
-  localStorage.setItem(STORAGE_KEYS.settings, JSON.stringify(state.settings));
-  refreshWhatsappLinks();
-  window.alert("Configuracoes salvas com sucesso.");
-  console.log("[Luxor] Settings saved:", state.settings);
+  try {
+    state.settings = await apiRequest("/api/settings", {
+      method: "PUT",
+      body: payload,
+      includeAdminPassword: true,
+    });
+    refreshWhatsappLinks();
+    updateBookingSummary();
+    window.alert("Configuracoes salvas com sucesso.");
+    console.log("[Luxor] Settings saved:", state.settings);
+  } catch (error) {
+    console.error("[Luxor] Failed to save settings", error);
+    window.alert(error.message || "Nao foi possivel salvar as configuracoes.");
+  }
 }
 
 function hydrateSettingsFields() {
@@ -360,13 +402,21 @@ function hydrateSettingsFields() {
   businessAddressField.value = state.settings.businessAddress;
 }
 
-function clearCancelledAppointments() {
-  state.appointments = state.appointments.filter((item) => item.status !== "cancelled");
-  persistAppointments();
-  renderAdminStats();
-  renderAppointments();
-  renderTimeOptions();
-  console.log("[Luxor] Cancelled appointments cleared");
+async function clearCancelledAppointments() {
+  try {
+    await apiRequest("/api/appointments/cancelled", {
+      method: "DELETE",
+      includeAdminPassword: true,
+    });
+    await Promise.all([loadAdminAppointments(), loadAvailability()]);
+    renderAdminStats();
+    renderAppointments();
+    renderTimeOptions();
+    console.log("[Luxor] Cancelled appointments cleared");
+  } catch (error) {
+    console.error("[Luxor] Failed to clear cancelled appointments", error);
+    window.alert(error.message || "Nao foi possivel remover os cancelados.");
+  }
 }
 
 function refreshWhatsappLinks() {
@@ -422,42 +472,42 @@ function exportAppointments() {
   console.log("[Luxor] Appointments exported");
 }
 
-function isSlotAvailable(date, time) {
-  return !state.appointments.some(
-    (item) =>
-      item.appointmentDate === date &&
-      item.appointmentTime === time &&
-      item.status !== "cancelled"
-  );
+async function loadPublicData() {
+  await Promise.all([loadSettings(), loadAvailability()]);
+  refreshWhatsappLinks();
+  renderTimeOptions();
 }
 
-function loadAppointments() {
-  try {
-    return JSON.parse(localStorage.getItem(STORAGE_KEYS.appointments) || "[]").map((appointment) => ({
-      paymentStatus: "pending",
-      ...appointment,
-    }));
-  } catch (error) {
-    console.error("[Luxor] Failed to parse appointments from storage", error);
-    return [];
-  }
+async function loadSettings() {
+  state.settings = await apiRequest("/api/settings");
+  console.log("[Luxor] Loaded settings from API:", state.settings);
+  return state.settings;
 }
 
-function loadSettings() {
-  try {
-    return {
-      ...DEFAULT_SETTINGS,
-      ...JSON.parse(localStorage.getItem(STORAGE_KEYS.settings) || "{}"),
-    };
-  } catch (error) {
-    console.error("[Luxor] Failed to parse settings from storage", error);
-    return { ...DEFAULT_SETTINGS };
-  }
+async function loadAvailability() {
+  state.availability = await apiRequest("/api/appointments/availability");
+  console.log("[Luxor] Loaded availability:", state.availability);
+  return state.availability;
 }
 
-function persistAppointments() {
-  localStorage.setItem(STORAGE_KEYS.appointments, JSON.stringify(state.appointments));
-  console.log("[Luxor] Appointments saved:", state.appointments);
+async function loadAdminAppointments() {
+  state.appointments = await apiRequest("/api/appointments", {
+    includeAdminPassword: true,
+  });
+  console.log("[Luxor] Loaded admin appointments:", state.appointments);
+  return state.appointments;
+}
+
+async function updateAppointment(appointmentId, payload) {
+  await apiRequest(`/api/appointments/${appointmentId}`, {
+    method: "PATCH",
+    includeAdminPassword: true,
+    body: payload,
+  });
+  await Promise.all([loadAdminAppointments(), loadAvailability()]);
+  renderAdminStats();
+  renderAppointments();
+  renderTimeOptions();
 }
 
 function setMinimumDate() {
@@ -477,7 +527,9 @@ function buildWhatsappMessage(appointment) {
   return (
     `Ola ${appointment.customerName}, seu agendamento na Luxor Massoterapia foi confirmado para ` +
     `${formatDate(appointment.appointmentDate)} as ${appointment.appointmentTime}. ` +
-    `Servico: ${appointment.massageType}. Pagamento: ${appointment.paymentMethod}.` +
+    `Servico: ${appointment.massageType}. Duracao: ${appointment.duration || getServiceDuration(appointment.massageType)}. ` +
+    `Valor: ${formatCurrency(appointment.amount || getServiceAmount(appointment.massageType))}. ` +
+    `Pagamento: ${appointment.paymentMethod}.` +
     `${addressText ? ` Local: ${addressText}.` : ""}${pixText}`
   );
 }
@@ -498,6 +550,51 @@ function formatDate(dateString) {
 
   const [year, month, day] = dateString.split("-");
   return `${day}/${month}/${year}`;
+}
+
+function formatCurrency(amount) {
+  return new Intl.NumberFormat("pt-BR", {
+    style: "currency",
+    currency: "BRL",
+  }).format(amount || 0);
+}
+
+function getServiceAmount(serviceName) {
+  return SERVICE_DETAILS[serviceName]?.price || 0;
+}
+
+function getServiceDuration(serviceName) {
+  return SERVICE_DETAILS[serviceName]?.duration || "Sob consulta";
+}
+
+function updateBookingSummary() {
+  const selectedService = massageTypeField.value;
+  const selectedDate = dateField.value;
+  const selectedTime = timeField.value;
+  const selectedPayment = paymentMethodField.value;
+  const selectedRegion = serviceRegionField.value.trim();
+
+  summaryService.textContent = selectedService || "Selecione uma massagem";
+  summaryDuration.textContent = selectedService ? getServiceDuration(selectedService) : "-";
+  summaryPrice.textContent = selectedService ? formatCurrency(getServiceAmount(selectedService)) : "-";
+  summaryPayment.textContent = selectedPayment || "-";
+  summaryRegion.textContent = selectedRegion || state.settings.businessAddress || "-";
+
+  if (selectedDate && selectedTime) {
+    summaryDateTime.textContent = `${formatDate(selectedDate)} as ${selectedTime}`;
+  } else if (selectedDate) {
+    summaryDateTime.textContent = formatDate(selectedDate);
+  } else {
+    summaryDateTime.textContent = "-";
+  }
+
+  console.log("[Luxor] Booking summary updated", {
+    selectedService,
+    selectedDate,
+    selectedTime,
+    selectedPayment,
+    selectedRegion,
+  });
 }
 
 function getStatusClassName(status) {
@@ -526,4 +623,34 @@ function getPaymentStatusLabel(status) {
   }
 
   return "pendente";
+}
+
+async function apiRequest(endpoint, options = {}) {
+  const requestOptions = {
+    method: options.method || "GET",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.includeAdminPassword && state.adminPassword
+        ? { "x-admin-password": state.adminPassword }
+        : {}),
+    },
+  };
+
+  if (options.body) {
+    requestOptions.body = JSON.stringify(options.body);
+  }
+
+  const response = await fetch(buildApiUrl(endpoint), requestOptions);
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.message || "Falha na comunicacao com a API.");
+  }
+
+  return data;
+}
+
+function buildApiUrl(endpoint) {
+  const baseUrl = (APP_CONFIG.apiBaseUrl || "").replace(/\/$/, "");
+  return baseUrl ? `${baseUrl}${endpoint}` : endpoint;
 }

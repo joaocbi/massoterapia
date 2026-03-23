@@ -319,6 +319,42 @@ button {
   padding: 20px;
 }
 
+.service-meta,
+.summary-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.service-meta {
+  color: var(--gold-soft);
+  font-size: 0.95rem;
+  font-weight: 600;
+}
+
+.summary-list {
+  display: grid;
+  gap: 12px;
+}
+
+.summary-item {
+  padding: 12px 0;
+  border-bottom: 1px solid rgba(216, 177, 94, 0.12);
+}
+
+.summary-item:last-child {
+  border-bottom: 0;
+}
+
+.summary-item span {
+  color: var(--text-soft);
+}
+
+.summary-item strong {
+  text-align: right;
+}
+
 .booking-form,
 .booking-side-panel,
 .admin-modal {

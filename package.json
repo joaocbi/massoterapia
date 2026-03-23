@@ -1,0 +1,29 @@
+{
+  "name": "massoterapia",
+  "version": "1.0.0",
+  "description": "Luxor massotherapy website with booking API, SQLite and Mercado Pago integration.",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "check:server": "node --check server.js",
+    "check:front": "node --check script.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/joaocbi/massoterapia.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/joaocbi/massoterapia/issues"
+  },
+  "homepage": "https://joaocbi.github.io/massoterapia/",
+  "dependencies": {
+    "cors": "^2.8.6",
+    "dotenv": "^17.3.1",
+    "express": "^5.2.1",
+    "mercadopago": "^2.12.0",
+    "sqlite3": "^6.0.1"
+  }
+}
