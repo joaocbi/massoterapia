@@ -8,10 +8,13 @@ const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
 const { all, get, initializeDatabase, run } = require("./database");
 
 const PORT = Number(process.env.PORT || 3000);
-const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD || "luxor2026";
-const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "*";
+const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
+const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
 const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || `http://localhost:${PORT}`;
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
+const ALLOWED_PAYMENT_METHODS = new Set(["Pix", "Dinheiro", "Cartao", "Mercado Pago"]);
+const ALLOWED_TIME_SLOTS = new Set(["09:00", "10:30", "12:00", "14:00", "15:30", "17:00", "18:30", "20:00"]);
+const allowedOrigins = parseAllowedOrigins(FRONTEND_ORIGIN);
 
 const SERVICE_DETAILS = {
   "Massagem Relaxante Luxor": { duration: "60 min", price: 180 },
@@ -29,9 +32,23 @@ const mercadopagoClient = MERCADO_PAGO_ACCESS_TOKEN
 
 app.use(
   cors({
-    origin: FRONTEND_ORIGIN === "*" ? true : FRONTEND_ORIGIN.split(",").map((item) => item.trim()),
+    origin(origin, callback) {
+      if (!origin || allowedOrigins.includes(origin)) {
+        callback(null, true);
+        return;
+      }
+
+      console.warn("[Luxor API] Blocked CORS origin:", origin);
+      callback(new Error("Origin not allowed by CORS"));
+    },
   })
 );
+app.use((request, response, next) => {
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("Referrer-Policy", "no-referrer");
+  next();
+});
 app.use(express.json());
 app.use(express.static(__dirname));
 
@@ -39,6 +56,7 @@ app.get("/api/health", async (request, response) => {
   response.json({
     ok: true,
     database: path.join(__dirname, "database.sqlite"),
+    adminConfigured: Boolean(ADMIN_PASSWORD),
     mercadoPagoConfigured: Boolean(MERCADO_PAGO_ACCESS_TOKEN),
   });
 });
@@ -113,8 +131,40 @@ app.post("/api/appointments", async (request, response, next) => {
   try {
     const payload = sanitizeAppointmentPayload(request.body || {});
 
-    if (!payload.customerName || !payload.customerPhone || !payload.massageType) {
+    if (
+      !payload.customerName ||
+      !payload.customerPhone ||
+      !payload.massageType ||
+      !payload.appointmentDate ||
+      !payload.appointmentTime ||
+      !payload.paymentMethod
+    ) {
       response.status(400).json({ message: "Dados obrigatorios ausentes." });
+      return;
+    }
+
+    if (!SERVICE_DETAILS[payload.massageType]) {
+      response.status(400).json({ message: "Tipo de massagem invalido." });
+      return;
+    }
+
+    if (!ALLOWED_TIME_SLOTS.has(payload.appointmentTime)) {
+      response.status(400).json({ message: "Horario invalido." });
+      return;
+    }
+
+    if (!ALLOWED_PAYMENT_METHODS.has(payload.paymentMethod)) {
+      response.status(400).json({ message: "Metodo de pagamento invalido." });
+      return;
+    }
+
+    if (!isValidIsoDate(payload.appointmentDate)) {
+      response.status(400).json({ message: "Data invalida." });
+      return;
+    }
+
+    if (new Date(`${payload.appointmentDate}T00:00:00`) < startOfToday()) {
+      response.status(400).json({ message: "Nao e permitido agendar datas passadas." });
       return;
     }
 
@@ -312,6 +362,12 @@ initializeDatabase()
   });
 
 function requireAdmin(request, response, next) {
+  if (!ADMIN_PASSWORD) {
+    console.error("[Luxor API] ADMIN_PASSWORD is not configured");
+    response.status(503).json({ message: "Painel administrativo indisponivel." });
+    return;
+  }
+
   const requestPassword = request.header("x-admin-password");
 
   if (!requestPassword || requestPassword !== ADMIN_PASSWORD) {
@@ -335,15 +391,15 @@ async function loadSettings() {
 
 function sanitizeAppointmentPayload(payload) {
   return {
-    customerName: String(payload.customerName || "").trim(),
-    customerPhone: String(payload.customerPhone || "").trim(),
-    customerEmail: String(payload.customerEmail || "").trim(),
+    customerName: String(payload.customerName || "").trim().slice(0, 120),
+    customerPhone: sanitizePhone(payload.customerPhone),
+    customerEmail: String(payload.customerEmail || "").trim().slice(0, 160),
     massageType: String(payload.massageType || "").trim(),
     appointmentDate: String(payload.appointmentDate || "").trim(),
     appointmentTime: String(payload.appointmentTime || "").trim(),
     paymentMethod: String(payload.paymentMethod || "").trim(),
-    serviceRegion: String(payload.serviceRegion || "").trim(),
-    customerNotes: String(payload.customerNotes || "").trim(),
+    serviceRegion: String(payload.serviceRegion || "").trim().slice(0, 160),
+    customerNotes: String(payload.customerNotes || "").trim().slice(0, 500),
   };
 }
 
@@ -359,6 +415,23 @@ function sanitizeSettingsPayload(payload) {
 
 function sanitizePhone(value) {
   return String(value || "5511999999999").replace(/\D/g, "");
+}
+
+function isValidIsoDate(value) {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value);
+}
+
+function startOfToday() {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return today;
+}
+
+function parseAllowedOrigins(value) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
 }
 
 function sanitizeStatus(status) {

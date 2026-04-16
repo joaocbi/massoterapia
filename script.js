@@ -354,7 +354,13 @@ function closeAdminModal() {
 }
 
 async function handleAdminLogin() {
-  state.adminPassword = adminPasswordField.value.trim() || APP_CONFIG.adminPassword || "";
+  state.adminPassword = adminPasswordField.value.trim();
+
+  if (!state.adminPassword) {
+    window.alert("Informe a senha administrativa.");
+    console.warn("[Luxor] Empty admin password rejected");
+    return;
+  }
 
   try {
     await Promise.all([loadSettings(), loadAdminAppointments()]);

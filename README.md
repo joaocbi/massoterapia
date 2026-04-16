@@ -39,7 +39,7 @@ npm start
 ## Environment variables
 
 - `PORT`: backend port
-- `ADMIN_PASSWORD`: password used by the admin modal
+- `ADMIN_PASSWORD`: required password used by the admin modal
 - `FRONTEND_ORIGIN`: allowed frontend origin for CORS
 - `PUBLIC_SITE_URL`: public backend URL used in Mercado Pago callbacks
 - `MERCADO_PAGO_ACCESS_TOKEN`: Mercado Pago private token
@@ -54,9 +54,16 @@ Example:
 ```javascript
 window.LUXOR_CONFIG = {
   apiBaseUrl: "https://your-backend-url.onrender.com",
-  adminPassword: "your-admin-password",
 };
 ```
+
+The admin password must stay only in the backend environment.
+
+## Security notes
+
+- Do not expose `ADMIN_PASSWORD` in `site-config.js`, `index.html`, or any public frontend file
+- Use a strong `ADMIN_PASSWORD` in production
+- Set `FRONTEND_ORIGIN` to the exact allowed frontend URL, or multiple URLs separated by commas
 
 ## GitHub Pages
 
