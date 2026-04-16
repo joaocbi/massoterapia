@@ -1,5 +1,5 @@
 {
-  "name": "massoterapia",
+  "name": "terapeuta",
   "version": "1.0.0",
   "description": "Luxor massotherapy website with booking API, SQLite and Mercado Pago integration.",
   "main": "server.js",

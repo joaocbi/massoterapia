@@ -1,6 +1,6 @@
 services:
   - type: web
-    name: luxor-massoterapia-api
+    name: terapeuta-api
     env: node
     plan: free
     buildCommand: npm install
