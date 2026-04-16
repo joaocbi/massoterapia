@@ -12,18 +12,32 @@ const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
 const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || `http://localhost:${PORT}`;
 const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
-const ALLOWED_PAYMENT_METHODS = new Set(["Pix", "Dinheiro", "Cartao", "Mercado Pago"]);
-const ALLOWED_TIME_SLOTS = new Set(["09:00", "10:30", "12:00", "14:00", "15:30", "17:00", "18:30", "20:00"]);
+const PREPAYMENT_METHODS = new Set(["Pix", "Cartao de Credito", "Cartao de Debito"]);
 const allowedOrigins = parseAllowedOrigins(FRONTEND_ORIGIN);
 
-const SERVICE_DETAILS = {
-  "Massagem Relaxante Luxor": { duration: "60 min", price: 180 },
-  "Massagem Terapeutica Premium": { duration: "75 min", price: 240 },
-  "Pedras Quentes e Aromas": { duration: "90 min", price: 320 },
-  "Drenagem Linfatica": { duration: "60 min", price: 210 },
-  "Massagem Modeladora": { duration: "50 min", price: 190 },
-  "Atendimento Personalizado": { duration: "Sob consulta", price: 260 },
-};
+const DEFAULT_SERVICE_CATALOG = [
+  { name: "Massagem Relaxante Flow", duration: "60 min", price: 180 },
+  { name: "Massagem Terapeutica Premium", duration: "75 min", price: 240 },
+  { name: "Pedras Quentes e Aromas", duration: "90 min", price: 320 },
+  { name: "Drenagem Linfatica", duration: "60 min", price: 210 },
+  { name: "Massagem Modeladora", duration: "50 min", price: 190 },
+  { name: "Atendimento Personalizado", duration: "Sob consulta", price: 260 },
+];
+const DEFAULT_TIME_SLOTS = [
+  "08:00",
+  "09:00",
+  "10:00",
+  "11:00",
+  "12:00",
+  "13:00",
+  "14:00",
+  "15:00",
+  "16:00",
+  "17:00",
+  "18:00",
+];
+const DEFAULT_PAYMENT_METHODS = ["Pix", "Cartao de Credito", "Cartao de Debito"];
+const DEFAULT_ALLOWED_WEEKDAYS = [1, 2, 3, 4, 5, 6];
 
 const app = express();
 const mercadopagoClient = MERCADO_PAGO_ACCESS_TOKEN
@@ -38,7 +52,7 @@ app.use(
         return;
       }
 
-      console.warn("[Luxor API] Blocked CORS origin:", origin);
+      console.warn("[Flow API] Blocked CORS origin:", origin);
       callback(new Error("Origin not allowed by CORS"));
     },
   })
@@ -77,7 +91,16 @@ app.put("/api/settings", requireAdmin, async (request, response, next) => {
     await run(
       `
         UPDATE settings
-        SET business_whatsapp = ?, mercado_pago_checkout = ?, pix_key = ?, business_address = ?
+        SET
+          business_whatsapp = ?,
+          mercado_pago_checkout = ?,
+          pix_key = ?,
+          business_address = ?,
+          services_json = ?,
+          time_slots_json = ?,
+          payment_methods_json = ?,
+          allowed_weekdays_json = ?,
+          blocked_dates_json = ?
         WHERE id = 1
       `,
       [
@@ -85,6 +108,11 @@ app.put("/api/settings", requireAdmin, async (request, response, next) => {
         payload.mercadoPagoCheckout,
         payload.pixKey,
         payload.businessAddress,
+        JSON.stringify(payload.services),
+        JSON.stringify(payload.timeSlots),
+        JSON.stringify(payload.paymentMethods),
+        JSON.stringify(payload.allowedWeekdays),
+        JSON.stringify(payload.blockedDates),
       ]
     );
 
@@ -130,6 +158,11 @@ app.get("/api/appointments", requireAdmin, async (request, response, next) => {
 app.post("/api/appointments", async (request, response, next) => {
   try {
     const payload = sanitizeAppointmentPayload(request.body || {});
+    const settings = await loadSettings();
+    const serviceMap = buildServiceMap(settings.services);
+    const allowedTimeSlots = new Set(settings.timeSlots);
+    const allowedPaymentMethods = new Set(settings.paymentMethods);
+    const blockedDates = new Set(settings.blockedDates);
 
     if (
       !payload.customerName ||
@@ -143,23 +176,33 @@ app.post("/api/appointments", async (request, response, next) => {
       return;
     }
 
-    if (!SERVICE_DETAILS[payload.massageType]) {
+    if (!serviceMap[payload.massageType]) {
       response.status(400).json({ message: "Tipo de massagem invalido." });
       return;
     }
 
-    if (!ALLOWED_TIME_SLOTS.has(payload.appointmentTime)) {
+    if (!allowedTimeSlots.has(payload.appointmentTime)) {
       response.status(400).json({ message: "Horario invalido." });
       return;
     }
 
-    if (!ALLOWED_PAYMENT_METHODS.has(payload.paymentMethod)) {
+    if (!allowedPaymentMethods.has(payload.paymentMethod)) {
       response.status(400).json({ message: "Metodo de pagamento invalido." });
       return;
     }
 
     if (!isValidIsoDate(payload.appointmentDate)) {
       response.status(400).json({ message: "Data invalida." });
+      return;
+    }
+
+    if (!isAllowedWeekday(payload.appointmentDate, settings.allowedWeekdays)) {
+      response.status(400).json({ message: "Agendamentos disponiveis apenas de segunda a sabado." });
+      return;
+    }
+
+    if (blockedDates.has(payload.appointmentDate)) {
+      response.status(400).json({ message: "Data indisponivel para atendimento." });
       return;
     }
 
@@ -184,15 +227,14 @@ app.post("/api/appointments", async (request, response, next) => {
 
     const appointmentId = crypto.randomUUID();
     const createdAt = new Date().toISOString();
-    const serviceInfo = SERVICE_DETAILS[payload.massageType] || {
+    const serviceInfo = serviceMap[payload.massageType] || {
       duration: "Sob consulta",
       price: 0,
     };
     let paymentUrl = "";
     let mercadoPagoPreferenceId = "";
-    const settings = await loadSettings();
 
-    if (payload.paymentMethod === "Mercado Pago") {
+    if (isPrepaymentMethod(payload.paymentMethod)) {
       const mercadoPagoCheckout = await createMercadoPagoPreference({
         appointmentId,
         payload,
@@ -342,7 +384,7 @@ app.post("/api/payments/mercadopago/webhook", async (request, response, next) =>
 });
 
 app.use((error, request, response, next) => {
-  console.error("[Luxor API] Unexpected error:", error);
+  console.error("[Flow API] Unexpected error:", error);
   response.status(500).json({
     message: "Ocorreu um erro interno no servidor.",
   });
@@ -352,18 +394,18 @@ initializeDatabase()
   .then(() => {
     if (require.main === module) {
       app.listen(PORT, () => {
-        console.log(`[Luxor API] Running at http://localhost:${PORT}`);
+        console.log(`[Flow API] Running at http://localhost:${PORT}`);
       });
     }
   })
   .catch((error) => {
-    console.error("[Luxor API] Failed to initialize database", error);
+    console.error("[Flow API] Failed to initialize database", error);
     process.exit(1);
   });
 
 function requireAdmin(request, response, next) {
   if (!ADMIN_PASSWORD) {
-    console.error("[Luxor API] ADMIN_PASSWORD is not configured");
+    console.error("[Flow API] ADMIN_PASSWORD is not configured");
     response.status(503).json({ message: "Painel administrativo indisponivel." });
     return;
   }
@@ -380,12 +422,22 @@ function requireAdmin(request, response, next) {
 
 async function loadSettings() {
   const row = await get(`SELECT * FROM settings WHERE id = 1`);
+  const services = parseJsonArray(row?.services_json, DEFAULT_SERVICE_CATALOG);
+  const timeSlots = parseJsonArray(row?.time_slots_json, DEFAULT_TIME_SLOTS);
+  const paymentMethods = parseJsonArray(row?.payment_methods_json, DEFAULT_PAYMENT_METHODS);
+  const allowedWeekdays = parseJsonArray(row?.allowed_weekdays_json, DEFAULT_ALLOWED_WEEKDAYS);
+  const blockedDates = parseJsonArray(row?.blocked_dates_json, []);
 
   return {
     businessWhatsapp: row?.business_whatsapp || "5511999999999",
     mercadoPagoCheckout: row?.mercado_pago_checkout || "https://www.mercadopago.com.br/",
     pixKey: row?.pix_key || "",
     businessAddress: row?.business_address || "",
+    services: sanitizeServices(services),
+    timeSlots: sanitizeTimeSlots(timeSlots),
+    paymentMethods: sanitizePaymentMethods(paymentMethods),
+    allowedWeekdays: sanitizeAllowedWeekdays(allowedWeekdays),
+    blockedDates: sanitizeBlockedDates(blockedDates),
   };
 }
 
@@ -404,12 +456,23 @@ function sanitizeAppointmentPayload(payload) {
 }
 
 function sanitizeSettingsPayload(payload) {
+  const services = sanitizeServices(payload.services);
+  const timeSlots = sanitizeTimeSlots(payload.timeSlots);
+  const paymentMethods = sanitizePaymentMethods(payload.paymentMethods);
+  const allowedWeekdays = sanitizeAllowedWeekdays(payload.allowedWeekdays);
+  const blockedDates = sanitizeBlockedDates(payload.blockedDates);
+
   return {
     businessWhatsapp: sanitizePhone(payload.businessWhatsapp),
     mercadoPagoCheckout:
       String(payload.mercadoPagoCheckout || "").trim() || "https://www.mercadopago.com.br/",
     pixKey: String(payload.pixKey || "").trim(),
     businessAddress: String(payload.businessAddress || "").trim(),
+    services,
+    timeSlots,
+    paymentMethods,
+    allowedWeekdays,
+    blockedDates,
   };
 }
 
@@ -432,6 +495,77 @@ function parseAllowedOrigins(value) {
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean);
+}
+
+function isAllowedWeekday(dateString, allowedWeekdays) {
+  const date = new Date(`${dateString}T00:00:00`);
+  return allowedWeekdays.includes(date.getDay());
+}
+
+function parseJsonArray(value, fallback) {
+  try {
+    if (!value) {
+      return fallback;
+    }
+
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed) ? parsed : fallback;
+  } catch (error) {
+    return fallback;
+  }
+}
+
+function sanitizeServices(value) {
+  const services = Array.isArray(value) ? value : [];
+  const normalized = services
+    .map((service) => ({
+      name: String(service?.name || "").trim().slice(0, 120),
+      duration: String(service?.duration || "").trim().slice(0, 40),
+      price: Number(service?.price || 0),
+    }))
+    .filter((service) => service.name && service.duration && Number.isFinite(service.price) && service.price >= 0);
+
+  return normalized.length ? normalized : DEFAULT_SERVICE_CATALOG;
+}
+
+function sanitizeTimeSlots(value) {
+  const slots = Array.isArray(value) ? value : [];
+  const unique = [...new Set(slots.map((item) => String(item || "").trim()))];
+  const filtered = unique.filter((slot) => /^\d{2}:\d{2}$/.test(slot));
+  return filtered.length ? filtered : DEFAULT_TIME_SLOTS;
+}
+
+function sanitizePaymentMethods(value) {
+  const methods = Array.isArray(value) ? value : [];
+  const unique = [...new Set(methods.map((item) => String(item || "").trim().slice(0, 60)).filter(Boolean))];
+  return unique.length ? unique : DEFAULT_PAYMENT_METHODS;
+}
+
+function sanitizeAllowedWeekdays(value) {
+  const weekdays = Array.isArray(value)
+    ? value.map((day) => Number(day)).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6)
+    : [];
+  const unique = [...new Set(weekdays)];
+  return unique.length ? unique : DEFAULT_ALLOWED_WEEKDAYS;
+}
+
+function sanitizeBlockedDates(value) {
+  const dates = Array.isArray(value) ? value : [];
+  const unique = [...new Set(dates.map((item) => String(item || "").trim()))];
+  return unique.filter((date) => /^\d{4}-\d{2}-\d{2}$/.test(date));
+}
+
+function buildServiceMap(services) {
+  const map = {};
+
+  services.forEach((service) => {
+    map[service.name] = {
+      duration: service.duration,
+      price: Number(service.price),
+    };
+  });
+
+  return map;
 }
 
 function sanitizeStatus(status) {
@@ -498,6 +632,7 @@ async function createMercadoPagoPreference({ appointmentId, payload, serviceInfo
         name: payload.customerName,
         email: payload.customerEmail || undefined,
       },
+      payment_methods: buildMercadoPagoPaymentMethods(payload.paymentMethod),
       notification_url: `${PUBLIC_SITE_URL}/api/payments/mercadopago/webhook`,
       back_urls: {
         success: `${PUBLIC_SITE_URL}/?payment=success`,
@@ -516,6 +651,34 @@ async function createMercadoPagoPreference({ appointmentId, payload, serviceInfo
 
 function mapMercadoPagoStatus(status) {
   return ["approved", "authorized"].includes(status) ? "paid" : "pending";
+}
+
+function isPrepaymentMethod(paymentMethod) {
+  return PREPAYMENT_METHODS.has(paymentMethod);
+}
+
+function buildMercadoPagoPaymentMethods(paymentMethod) {
+  if (paymentMethod === "Pix") {
+    return {
+      excluded_payment_types: [{ id: "credit_card" }, { id: "debit_card" }, { id: "ticket" }],
+      installments: 1,
+    };
+  }
+
+  if (paymentMethod === "Cartao de Credito") {
+    return {
+      excluded_payment_types: [{ id: "debit_card" }, { id: "ticket" }, { id: "bank_transfer" }],
+    };
+  }
+
+  if (paymentMethod === "Cartao de Debito") {
+    return {
+      excluded_payment_types: [{ id: "credit_card" }, { id: "ticket" }, { id: "bank_transfer" }],
+      installments: 1,
+    };
+  }
+
+  return undefined;
 }
 
 module.exports = app;

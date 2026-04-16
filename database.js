@@ -19,9 +19,16 @@ async function initializeDatabase() {
       business_whatsapp TEXT NOT NULL DEFAULT '5511999999999',
       mercado_pago_checkout TEXT NOT NULL DEFAULT 'https://www.mercadopago.com.br/',
       pix_key TEXT NOT NULL DEFAULT '',
-      business_address TEXT NOT NULL DEFAULT ''
+      business_address TEXT NOT NULL DEFAULT '',
+      services_json TEXT NOT NULL DEFAULT '[]',
+      time_slots_json TEXT NOT NULL DEFAULT '[]',
+      payment_methods_json TEXT NOT NULL DEFAULT '[]',
+      allowed_weekdays_json TEXT NOT NULL DEFAULT '[1,2,3,4,5,6]',
+      blocked_dates_json TEXT NOT NULL DEFAULT '[]'
     )
   `);
+
+  await ensureSettingsColumns();
 
   await run(`
     CREATE TABLE IF NOT EXISTS appointments (
@@ -56,6 +63,25 @@ async function initializeDatabase() {
     )
     VALUES (1, '5511999999999', 'https://www.mercadopago.com.br/', '', '')
   `);
+}
+
+async function ensureSettingsColumns() {
+  const columns = await all(`PRAGMA table_info(settings)`);
+  const existing = new Set(columns.map((column) => column.name));
+
+  await addColumnIfMissing(existing, "services_json", "TEXT NOT NULL DEFAULT '[]'");
+  await addColumnIfMissing(existing, "time_slots_json", "TEXT NOT NULL DEFAULT '[]'");
+  await addColumnIfMissing(existing, "payment_methods_json", "TEXT NOT NULL DEFAULT '[]'");
+  await addColumnIfMissing(existing, "allowed_weekdays_json", "TEXT NOT NULL DEFAULT '[1,2,3,4,5,6]'");
+  await addColumnIfMissing(existing, "blocked_dates_json", "TEXT NOT NULL DEFAULT '[]'");
+}
+
+async function addColumnIfMissing(existing, columnName, definition) {
+  if (existing.has(columnName)) {
+    return;
+  }
+
+  await run(`ALTER TABLE settings ADD COLUMN ${columnName} ${definition}`);
 }
 
 async function run(sql, params = []) {

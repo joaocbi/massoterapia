@@ -1,478 +1,476 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Luxor Massoterapia | Atendimento Premium</title>
-    <meta
-      name="description"
-      content="Massoterapia premium com ambiente luxuoso, agendamento rapido, pagamento facilitado e atendimento personalizado."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
-      rel="stylesheet"
-    />
-    <link rel="stylesheet" href="styles.css" />
-  </head>
-  <body>
-    <div class="page-shell">
-      <header class="topbar">
-        <div class="brand-block">
-          <span class="brand-kicker">Luxor Experience</span>
-          <h1>Luxor Massoterapia</h1>
-        </div>
-        <div class="topbar-actions">
-          <a class="ghost-button" href="#services">Massagens</a>
-          <a class="ghost-button" href="#experience">Diferenciais</a>
-          <a class="ghost-button" href="#booking">Agendar</a>
-          <button class="ghost-button" id="openAdminModal" type="button">
-            Admin
-          </button>
-        </div>
-      </header>
 
-      <main>
-        <section class="hero-section">
-          <div class="hero-copy">
-            <span class="hero-badge">Elegancia, cuidado e resultados reais</span>
-            <h2>Seu momento de relaxamento com visual premium e agendamento imediato.</h2>
-            <p>
-              Atendimento exclusivo com tecnicas personalizadas, confirmacao automatica,
-              WhatsApp direto e pagamento simplificado com Pix, cartao, dinheiro ou
-              Mercado Pago.
-            </p>
-            <div class="hero-cta">
-              <a class="primary-button" href="#booking">Reservar agora</a>
-              <a class="secondary-button" id="heroWhatsappButton" href="#" target="_blank" rel="noreferrer">
-                Falar no WhatsApp
-              </a>
-            </div>
-            <div class="hero-highlights">
-              <article>
-                <strong>+ Atendimento premium</strong>
-                <span>Experiencia elegante com foco total no bem-estar.</span>
-              </article>
-              <article>
-                <strong>Agendamento automatico</strong>
-                <span>Cliente recebe confirmacao com data, horario e servico.</span>
-              </article>
-              <article>
-                <strong>Pagamento flexivel</strong>
-                <span>Mercado Pago integrado por link configuravel no painel admin.</span>
-              </article>
-            </div>
-          </div>
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Flow Terapias | Atendimento Premium</title>
+  <meta name="description"
+    content="Massoterapia premium com ambiente luxuoso, agendamento rapido, pagamento facilitado e atendimento personalizado." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
 
-          <div class="hero-visual">
-            <div class="hero-card luxury-frame">
-              <img
-                src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=1200&q=80"
-                alt="Ambiente premium de massoterapia"
-              />
-              <div class="hero-card-overlay">
-                <span>Luxo e conforto</span>
-                <strong>Experiencia sensorial completa</strong>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        <section class="services-section" id="services">
-          <div class="section-heading">
-            <span class="section-kicker">Servicos em destaque</span>
-            <h3>Cards pensados para despertar o desejo de agendar.</h3>
-          </div>
-
-          <div class="cards-grid">
-            <article class="service-card">
-              <img
-                src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=900&q=80"
-                alt="Massagem relaxante"
-              />
-              <div class="service-card-content" data-service-card="Massagem Relaxante Luxor">
-                <span class="service-tag">Relaxante</span>
-                <h4>Massagem Relaxante Luxor</h4>
-                <div class="service-meta">
-                  <span>60 min</span>
-                  <span>R$ 180</span>
-                </div>
-                <p>Alivio rapido do estresse com ambiente acolhedor e toque restaurador.</p>
-                <button class="service-select-button" data-service="Massagem Relaxante Luxor" type="button">
-                  Quero esta experiencia
-                </button>
-              </div>
-            </article>
-
-            <article class="service-card">
-              <img
-                src="https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=80"
-                alt="Massagem terapeutica"
-              />
-              <div class="service-card-content" data-service-card="Massagem Terapeutica Premium">
-                <span class="service-tag">Terapeutica</span>
-                <h4>Massagem Terapeutica Premium</h4>
-                <div class="service-meta">
-                  <span>75 min</span>
-                  <span>R$ 240</span>
-                </div>
-                <p>Atendimento para tensoes musculares, dores localizadas e recuperacao corporal.</p>
-                <button class="service-select-button" data-service="Massagem Terapeutica Premium" type="button">
-                  Agendar agora
-                </button>
-              </div>
-            </article>
-
-            <article class="service-card">
-              <img
-                src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80"
-                alt="Massagem com pedras quentes"
-              />
-              <div class="service-card-content" data-service-card="Pedras Quentes e Aromas">
-                <span class="service-tag">Ritual Luxor</span>
-                <h4>Pedras Quentes e Aromas</h4>
-                <div class="service-meta">
-                  <span>90 min</span>
-                  <span>R$ 320</span>
-                </div>
-                <p>Uma experiencia sofisticada para quem busca relaxamento profundo e exclusividade.</p>
-                <button class="service-select-button" data-service="Pedras Quentes e Aromas" type="button">
-                  Reservar ritual
-                </button>
-              </div>
-            </article>
-          </div>
-        </section>
-
-        <section class="experience-section" id="experience">
-          <div class="section-heading">
-            <span class="section-kicker">Diferenciais Luxor</span>
-            <h3>Uma experiencia de alto valor que aumenta a confianca na reserva.</h3>
-          </div>
-
-          <div class="experience-grid">
-            <article class="info-card luxury-frame">
-              <strong>Ambiente sofisticado</strong>
-              <p>Iluminacao aconchegante, atmosfera premium e sensacao imediata de exclusividade.</p>
-            </article>
-            <article class="info-card luxury-frame">
-              <strong>Atendimento personalizado</strong>
-              <p>Cada sessao considera sua dor, rotina, preferencia de pressao e objetivo corporal.</p>
-            </article>
-            <article class="info-card luxury-frame">
-              <strong>Retorno automatizado</strong>
-              <p>O cliente sai com a confirmacao pronta para WhatsApp com data, horario e servico.</p>
-            </article>
-            <article class="info-card luxury-frame">
-              <strong>Pagamento facilitado</strong>
-              <p>Pix, dinheiro, cartao e Mercado Pago com configuracao administravel no painel.</p>
-            </article>
-          </div>
-        </section>
-
-        <section class="booking-section" id="booking">
-          <div class="section-heading">
-            <span class="section-kicker">Agendamento inteligente</span>
-            <h3>Escolha servico, horario, pagamento e receba a confirmacao instantaneamente.</h3>
-          </div>
-
-          <div class="booking-layout">
-            <form class="booking-form luxury-frame" id="bookingForm">
-              <div class="form-grid">
-                <label>
-                  Nome completo
-                  <input id="customerName" name="customerName" type="text" placeholder="Seu nome" required />
-                </label>
-
-                <label>
-                  WhatsApp
-                  <input
-                    id="customerPhone"
-                    name="customerPhone"
-                    type="tel"
-                    placeholder="(11) 99999-9999"
-                    required
-                  />
-                </label>
-
-                <label>
-                  E-mail
-                  <input id="customerEmail" name="customerEmail" type="email" placeholder="voce@email.com" />
-                </label>
-
-                <label>
-                  Tipo de massagem
-                  <select id="massageType" name="massageType" required>
-                    <option value="">Selecione</option>
-                    <option value="Massagem Relaxante Luxor">Massagem Relaxante Luxor</option>
-                    <option value="Massagem Terapeutica Premium">Massagem Terapeutica Premium</option>
-                    <option value="Pedras Quentes e Aromas">Pedras Quentes e Aromas</option>
-                    <option value="Drenagem Linfatica">Drenagem Linfatica</option>
-                    <option value="Massagem Modeladora">Massagem Modeladora</option>
-                    <option value="Atendimento Personalizado">Atendimento Personalizado</option>
-                  </select>
-                </label>
-
-                <label>
-                  Data
-                  <input id="appointmentDate" name="appointmentDate" type="date" required />
-                </label>
-
-                <label>
-                  Horario
-                  <select id="appointmentTime" name="appointmentTime" required>
-                    <option value="">Selecione</option>
-                  </select>
-                </label>
-
-                <label>
-                  Forma de pagamento
-                  <select id="paymentMethod" name="paymentMethod" required>
-                    <option value="">Selecione</option>
-                    <option value="Pix">Pix</option>
-                    <option value="Cartao na hora">Cartao na hora</option>
-                    <option value="Dinheiro">Dinheiro</option>
-                    <option value="Mercado Pago">Mercado Pago</option>
-                  </select>
-                </label>
-
-                <label>
-                  Unidade ou regiao
-                  <input
-                    id="serviceRegion"
-                    name="serviceRegion"
-                    type="text"
-                    placeholder="Ex: Centro, Moema ou atendimento a domicilio"
-                  />
-                </label>
-
-                <label class="full-width">
-                  Observacoes
-                  <textarea
-                    id="customerNotes"
-                    name="customerNotes"
-                    rows="4"
-                    placeholder="Preferencias, dores ou informacoes importantes"
-                  ></textarea>
-                </label>
-              </div>
-
-              <div class="form-actions">
-                <button class="primary-button" type="submit">Confirmar agendamento</button>
-                <a class="secondary-button" id="formWhatsappButton" href="#" target="_blank" rel="noreferrer">
-                  Chamar no WhatsApp
-                </a>
-              </div>
-            </form>
-
-            <aside class="booking-side-panel luxury-frame">
-              <div class="booking-panel-card">
-                <span class="panel-kicker">Retorno automatico</span>
-                <h4>Confirmacao imediata para o cliente</h4>
-                <p>
-                  Assim que o agendamento for concluido, o sistema mostra a data, o horario,
-                  o servico escolhido e um texto pronto para envio no WhatsApp.
-                </p>
-              </div>
-
-              <div class="booking-panel-card">
-                <span class="panel-kicker">Pagamento Mercado Pago</span>
-                <h4>Checkout por link configuravel</h4>
-                <p>
-                  O painel admin permite definir o link de pagamento do Mercado Pago para
-                  direcionar o cliente logo apos a reserva.
-                </p>
-              </div>
-
-              <div class="booking-panel-card" id="bookingSummaryCard">
-                <span class="panel-kicker">Resumo da reserva</span>
-                <h4>Visualize o atendimento antes de confirmar</h4>
-                <div class="summary-list">
-                  <div class="summary-item">
-                    <span>Servico</span>
-                    <strong id="summaryService">Selecione uma massagem</strong>
-                  </div>
-                  <div class="summary-item">
-                    <span>Duracao</span>
-                    <strong id="summaryDuration">-</strong>
-                  </div>
-                  <div class="summary-item">
-                    <span>Valor</span>
-                    <strong id="summaryPrice">-</strong>
-                  </div>
-                  <div class="summary-item">
-                    <span>Pagamento</span>
-                    <strong id="summaryPayment">-</strong>
-                  </div>
-                  <div class="summary-item">
-                    <span>Local</span>
-                    <strong id="summaryRegion">-</strong>
-                  </div>
-                  <div class="summary-item">
-                    <span>Horario</span>
-                    <strong id="summaryDateTime">-</strong>
-                  </div>
-                </div>
-              </div>
-
-              <div class="booking-panel-card confirmation-card hidden" id="confirmationCard">
-                <span class="panel-kicker">Agendamento confirmado</span>
-                <h4 id="confirmationTitle">Sua sessao esta reservada.</h4>
-                <p id="confirmationText"></p>
-                <div class="confirmation-actions">
-                  <a class="primary-button" id="confirmationWhatsappLink" href="#" target="_blank" rel="noreferrer">
-                    Enviar confirmacao no WhatsApp
-                  </a>
-                  <a class="secondary-button hidden" id="mercadoPagoLink" href="#" target="_blank" rel="noreferrer">
-                    Pagar com Mercado Pago
-                  </a>
-                </div>
-              </div>
-            </aside>
-          </div>
-        </section>
-
-        <section class="testimonials-section" id="testimonials">
-          <div class="section-heading">
-            <span class="section-kicker">Prova social</span>
-            <h3>Depoimentos que reforcam desejo, seguranca e conversao.</h3>
-          </div>
-
-          <div class="testimonials-grid">
-            <article class="testimonial-card luxury-frame">
-              <p>"A melhor experiencia de massoterapia que ja tive. Ambiente impecavel e atendimento memoravel."</p>
-              <strong>Mariana S.</strong>
-            </article>
-            <article class="testimonial-card luxury-frame">
-              <p>"Consegui agendar em minutos e recebi a confirmacao certa com horario e forma de pagamento."</p>
-              <strong>Rafael M.</strong>
-            </article>
-            <article class="testimonial-card luxury-frame">
-              <p>"O ritual com pedras quentes entregou exatamente a sensacao premium que eu procurava."</p>
-              <strong>Patricia L.</strong>
-            </article>
-          </div>
-        </section>
-
-        <section class="faq-section">
-          <div class="section-heading">
-            <span class="section-kicker">Perguntas frequentes</span>
-            <h3>Respostas rapidas para reduzir objeções antes do agendamento.</h3>
-          </div>
-
-          <div class="faq-grid">
-            <article class="faq-card luxury-frame">
-              <strong>Como funciona a confirmacao?</strong>
-              <p>Assim que o cliente agenda, o sistema gera a confirmacao com servico, data e horario.</p>
-            </article>
-            <article class="faq-card luxury-frame">
-              <strong>Como pago com Mercado Pago?</strong>
-              <p>Ao escolher Mercado Pago, o cliente recebe o link de checkout configurado no painel admin.</p>
-            </article>
-            <article class="faq-card luxury-frame">
-              <strong>Posso personalizar o atendimento?</strong>
-              <p>Sim. O campo de observacoes permite informar dores, preferencias e necessidades especiais.</p>
-            </article>
-          </div>
-        </section>
-      </main>
-    </div>
-
-    <a class="floating-whatsapp" id="floatingWhatsappButton" href="#" target="_blank" rel="noreferrer">
-      WhatsApp
-    </a>
-
-    <div class="modal-backdrop hidden" id="adminModal">
-      <div class="admin-modal luxury-frame" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
-        <div class="admin-modal-header">
-          <div>
-            <span class="section-kicker">Painel administrativo</span>
-            <h3 id="adminTitle">Gerenciar agendamentos e configuracoes</h3>
-          </div>
-          <button class="close-button" id="closeAdminModal" type="button" aria-label="Fechar painel">
-            x
-          </button>
-        </div>
-
-        <div class="admin-login" id="adminLogin">
-          <label>
-            Senha admin
-            <input id="adminPassword" type="password" placeholder="Digite a senha" />
-          </label>
-          <button class="primary-button" id="adminLoginButton" type="button">Entrar</button>
-          <p class="admin-hint">Senha demo: luxor2026</p>
-        </div>
-
-        <div class="admin-content hidden" id="adminContent">
-          <section class="admin-settings">
-            <h4>Configuracoes rapidas</h4>
-            <div class="form-grid compact-grid">
-              <label>
-                WhatsApp do negocio
-                <input id="businessWhatsapp" type="text" placeholder="5511999999999" />
-              </label>
-              <label>
-                Link Mercado Pago
-                <input id="mercadoPagoCheckout" type="url" placeholder="https://www.mercadopago.com.br/..." />
-              </label>
-              <label>
-                Chave Pix
-                <input id="pixKey" type="text" placeholder="Digite a chave Pix" />
-              </label>
-              <label>
-                Endereco de atendimento
-                <input id="businessAddress" type="text" placeholder="Digite o endereco ou regiao principal" />
-              </label>
-            </div>
-            <div class="form-actions">
-              <button class="primary-button" id="saveSettingsButton" type="button">Salvar configuracoes</button>
-            </div>
-          </section>
-
-          <section class="admin-stats" id="adminStats"></section>
-
-          <section class="admin-list-section">
-            <div class="admin-list-header">
-              <h4>Agendamentos</h4>
-              <div class="admin-inline-actions">
-                <button class="secondary-button" id="exportAppointmentsButton" type="button">
-                  Exportar JSON
-                </button>
-                <button class="secondary-button" id="clearCompletedButton" type="button">
-                  Remover cancelados
-                </button>
-              </div>
-            </div>
-            <div class="admin-filters">
-              <label>
-                Buscar cliente
-                <input id="appointmentSearch" type="text" placeholder="Nome, servico ou telefone" />
-              </label>
-              <label>
-                Status
-                <select id="appointmentStatusFilter">
-                  <option value="all">Todos</option>
-                  <option value="confirmed">Confirmados</option>
-                  <option value="cancelled">Cancelados</option>
-                </select>
-              </label>
-              <label>
-                Pagamento
-                <select id="paymentStatusFilter">
-                  <option value="all">Todos</option>
-                  <option value="pending">Pendente</option>
-                  <option value="paid">Pago</option>
-                </select>
-              </label>
-            </div>
-            <div class="admin-list" id="appointmentsList"></div>
-          </section>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <div class="brand-block">
+        <div class="brand-row">
+          <img class="brand-logo" src="logo-flow.png" alt="Logo Flow Terapias" />
+          <h1>Flow Terapias</h1>
         </div>
       </div>
-    </div>
+      <div class="topbar-actions">
+        <a class="ghost-button" href="#services">Massagens</a>
+        <a class="ghost-button" href="#experience">Diferenciais</a>
+        <a class="ghost-button" href="#booking">Agendar</a>
+        <button class="ghost-button" id="openAdminModal" type="button">
+          Admin
+        </button>
+      </div>
+    </header>
 
-    <script src="site-config.js"></script>
-    <script src="script.js"></script>
-  </body>
+    <main>
+      <section class="hero-section">
+        <div class="hero-copy">
+          <span class="hero-badge">Elegancia, cuidado e resultados reais</span>
+          <h2>Seu momento de relaxamento com visual premium e agendamento imediato.</h2>
+          <p>
+            Atendimento exclusivo com tecnicas personalizadas, confirmacao automatica,
+            WhatsApp direto e pagamento simplificado com Pix, cartao, dinheiro ou
+            Mercado Pago.
+          </p>
+          <div class="hero-cta">
+            <a class="primary-button" href="#booking">Reservar agora</a>
+            <a class="secondary-button" id="heroWhatsappButton" href="#" target="_blank" rel="noreferrer">
+              Falar no WhatsApp
+            </a>
+          </div>
+          <div class="hero-highlights">
+            <article>
+              <strong>+ Atendimento premium</strong>
+              <span>Experiencia elegante com foco total no bem-estar.</span>
+            </article>
+            <article>
+              <strong>Agendamento automatico</strong>
+              <span>Cliente recebe confirmacao com data, horario e servico.</span>
+            </article>
+            <article>
+              <strong>Pagamento flexivel</strong>
+              <span>Mercado Pago integrado por link configuravel no painel admin.</span>
+            </article>
+          </div>
+        </div>
+
+        <div class="hero-visual">
+          <div class="hero-card luxury-frame">
+            <img src="https://images.unsplash.com/photo-1519823551278-64ac92734fb1?auto=format&fit=crop&w=1200&q=80"
+              alt="Ambiente premium de massoterapia" />
+            <div class="hero-card-overlay">
+              <span>Luxo e conforto</span>
+              <strong>Experiencia sensorial completa</strong>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="services-section" id="services">
+        <div class="section-heading">
+          <span class="section-kicker">Servicos em destaque</span>
+          <h3>Hora de despertar o desejo de agendar.</h3>
+          <p class="section-helper-text">
+            Clique em qualquer card para selecionar o servico automaticamente no agendamento.
+          </p>
+        </div>
+
+        <div class="cards-grid">
+          <article class="service-card">
+            <img src="https://images.unsplash.com/photo-1544161515-4ab6ce6db874?auto=format&fit=crop&w=900&q=80"
+              alt="Massagem relaxante" />
+            <div class="service-card-content" data-service-card="Massagem Relaxante Flow" tabindex="0" role="button"
+              aria-label="Selecionar Massagem Relaxante Flow">
+              <span class="service-tag">Relaxante</span>
+              <h4>Massagem Relaxante Flow</h4>
+              <div class="service-meta">
+                <span>60 min</span>
+                <span>R$ 120</span>
+              </div>
+              <p>Alivio rapido do estresse com ambiente acolhedor e toque restaurador.</p>
+              <button class="service-select-button" data-service="Massagem Relaxante Flow" type="button">
+                Quero esta experiencia
+              </button>
+            </div>
+          </article>
+
+          <article class="service-card">
+            <img src="https://images.unsplash.com/photo-1515377905703-c4788e51af15?auto=format&fit=crop&w=900&q=80"
+              alt="Massagem terapeutica" />
+            <div class="service-card-content" data-service-card="Massagem Terapeutica Premium" tabindex="0"
+              role="button" aria-label="Selecionar Massagem Terapeutica Premium">
+              <span class="service-tag">Terapeutica</span>
+              <h4>Massagem Terapeutica Premium</h4>
+              <div class="service-meta">
+                <span>75 min</span>
+                <span>R$ 150</span>
+              </div>
+              <p>Atendimento para tensoes musculares, dores localizadas e recuperacao corporal.</p>
+              <button class="service-select-button" data-service="Massagem Terapeutica Premium" type="button">
+                Agendar agora
+              </button>
+            </div>
+          </article>
+
+          <article class="service-card">
+            <img src="https://images.unsplash.com/photo-1506126613408-eca07ce68773?auto=format&fit=crop&w=900&q=80"
+              alt="Massagem com pedras quentes" />
+            <div class="service-card-content" data-service-card="Pedras Quentes e Aromas" tabindex="0" role="button"
+              aria-label="Selecionar Pedras Quentes e Aromas">
+              <span class="service-tag">Ritual Flow</span>
+              <h4>Pedras Quentes e Aromas</h4>
+              <div class="service-meta">
+                <span>90 min</span>
+                <span>R$ 150</span>
+              </div>
+              <p>Uma experiencia sofisticada para quem busca relaxamento profundo e exclusividade.</p>
+              <button class="service-select-button" data-service="Pedras Quentes e Aromas" type="button">
+                Reservar ritual
+              </button>
+            </div>
+          </article>
+        </div>
+      </section>
+
+      <section class="experience-section" id="experience">
+        <div class="section-heading">
+          <span class="section-kicker">Diferenciais Flow</span>
+          <h3>Uma experiencia de alto valor que aumenta a confianca na reserva.</h3>
+        </div>
+
+        <div class="experience-grid">
+          <article class="info-card luxury-frame">
+            <strong>Ambiente sofisticado</strong>
+            <p>Iluminacao aconchegante, atmosfera premium e sensacao imediata de exclusividade.</p>
+          </article>
+          <article class="info-card luxury-frame">
+            <strong>Atendimento personalizado</strong>
+            <p>Cada sessao considera sua dor, rotina, preferencia de pressao e objetivo corporal.</p>
+          </article>
+          <article class="info-card luxury-frame">
+            <strong>Retorno automatizado</strong>
+            <p>O cliente tem a confirmacao pronta para WhatsApp com data, horario e servico.</p>
+          </article>
+          <article class="info-card luxury-frame">
+            <strong>Pagamento facilitado</strong>
+            <p>Pix, dinheiro, cartao e Mercado Pago direto pelo site.</p>
+          </article>
+        </div>
+      </section>
+
+      <section class="booking-section" id="booking">
+        <div class="section-heading">
+          <span class="section-kicker">Agendamento inteligente</span>
+          <h3>Escolha servico, horario, pagamento e receba a confirmacao instantaneamente.</h3>
+        </div>
+
+        <div class="booking-layout">
+          <form class="booking-form luxury-frame" id="bookingForm">
+            <div class="form-grid">
+              <label>
+                Nome completo
+                <input id="customerName" name="customerName" type="text" placeholder="Seu nome" required />
+              </label>
+
+              <label>
+                WhatsApp
+                <input id="customerPhone" name="customerPhone" type="tel" placeholder="(11) 99999-9999" required />
+              </label>
+
+              <label>
+                E-mail
+                <input id="customerEmail" name="customerEmail" type="email" placeholder="voce@email.com" />
+              </label>
+
+              <fieldset class="radio-group-fieldset">
+                <legend>Tipo de massagem</legend>
+                <div class="radio-cards-grid" id="massageType">
+                </div>
+              </fieldset>
+
+              <label>
+                Data
+                <input id="appointmentDate" name="appointmentDate" type="date" required />
+                <small class="field-note">Atendimento de segunda a sabado.</small>
+              </label>
+
+              <fieldset class="radio-group-fieldset">
+                <legend>Horario</legend>
+                <div class="radio-cards-grid" id="appointmentTime">
+                </div>
+                <small class="field-note">Horarios disponiveis das 08:00 as 18:00.</small>
+              </fieldset>
+
+              <fieldset class="radio-group-fieldset">
+                <legend>Forma de pagamento</legend>
+                <div class="radio-cards-grid" id="paymentMethod">
+                </div>
+              </fieldset>
+
+              <label>
+                Unidade ou regiao
+                <input id="serviceRegion" name="serviceRegion" type="text"
+                  placeholder="Centro, Ponta Grossa ou atendimento a domicilio" />
+              </label>
+
+              <label class="full-width">
+                Observacoes
+                <textarea id="customerNotes" name="customerNotes" rows="4"
+                  placeholder="Preferencias, dores ou informacoes importantes"></textarea>
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button class="primary-button" type="submit">Confirmar agendamento</button>
+              <a class="secondary-button" id="formWhatsappButton" href="#" target="_blank" rel="noreferrer">
+                Chamar no WhatsApp
+              </a>
+            </div>
+          </form>
+
+          <aside class="booking-side-panel luxury-frame">
+            <div class="booking-panel-card">
+              <span class="panel-kicker">Retorno automatico</span>
+              <h4>Confirmacao imediata para o cliente</h4>
+              <p>
+                Assim que o agendamento for concluido, o sistema mostra a data, o horario,
+                o servico escolhido e um texto pronto para envio no WhatsApp.
+              </p>
+            </div>
+
+            <div class="booking-panel-card">
+              <span class="panel-kicker">Pagamento Mercado Pago</span>
+              <h4>Checkout por link configuravel</h4>
+              <p>
+                O painel admin permite definir o link de pagamento do Mercado Pago para
+                direcionar o cliente logo apos a reserva.
+              </p>
+            </div>
+
+            <div class="booking-panel-card" id="bookingSummaryCard">
+              <span class="panel-kicker">Resumo da reserva</span>
+              <h4>Visualize o atendimento antes de confirmar</h4>
+              <div class="summary-list">
+                <div class="summary-item">
+                  <span>Servico</span>
+                  <strong id="summaryService">Selecione uma massagem</strong>
+                </div>
+                <div class="summary-item">
+                  <span>Duracao</span>
+                  <strong id="summaryDuration">-</strong>
+                </div>
+                <div class="summary-item">
+                  <span>Valor</span>
+                  <strong id="summaryPrice">-</strong>
+                </div>
+                <div class="summary-item">
+                  <span>Pagamento</span>
+                  <strong id="summaryPayment">-</strong>
+                </div>
+                <div class="summary-item">
+                  <span>Local</span>
+                  <strong id="summaryRegion">-</strong>
+                </div>
+                <div class="summary-item">
+                  <span>Horario</span>
+                  <strong id="summaryDateTime">-</strong>
+                </div>
+              </div>
+            </div>
+
+            <div class="booking-panel-card confirmation-card hidden" id="confirmationCard">
+              <span class="panel-kicker">Agendamento confirmado</span>
+              <h4 id="confirmationTitle">Sua sessao esta reservada.</h4>
+              <p id="confirmationText"></p>
+              <div class="confirmation-actions">
+                <a class="primary-button" id="confirmationWhatsappLink" href="#" target="_blank" rel="noreferrer">
+                  Enviar confirmacao no WhatsApp
+                </a>
+                <a class="secondary-button hidden" id="mercadoPagoLink" href="#" target="_blank" rel="noreferrer">
+                  Pagar com Mercado Pago
+                </a>
+              </div>
+            </div>
+          </aside>
+        </div>
+      </section>
+
+      <section class="testimonials-section" id="testimonials">
+        <div class="section-heading">
+          <span class="section-kicker">Prova social</span>
+          <h3>Depoimentos que reforcam desejo e seguranca'.</h3>
+        </div>
+
+        <div class="testimonials-grid">
+          <article class="testimonial-card luxury-frame">
+            <p>"A melhor experiencia de massoterapia que ja tive. Ambiente impecavel e atendimento memoravel."</p>
+            <strong>Mariana S.</strong>
+          </article>
+          <article class="testimonial-card luxury-frame">
+            <p>"Consegui agendar em minutos e recebi a confirmacao certa com horario e forma de pagamento."</p>
+            <strong>Rafael M.</strong>
+          </article>
+          <article class="testimonial-card luxury-frame">
+            <p>"O ritual com pedras quentes entregou exatamente a sensacao premium que eu procurava."</p>
+            <strong>Patricia L.</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="faq-section">
+        <div class="section-heading">
+          <span class="section-kicker">Perguntas frequentes</span>
+          <h3>Respostas rapidas para reduzir objeções antes do agendamento.</h3>
+        </div>
+
+        <div class="faq-grid">
+          <article class="faq-card luxury-frame">
+            <strong>Como funciona a confirmacao?</strong>
+            <p>Assim que o cliente agenda, o sistema gera a confirmacao com servico, data e horario.</p>
+          </article>
+          <article class="faq-card luxury-frame">
+            <strong>Como pago com Mercado Pago?</strong>
+            <p>Ao escolher Mercado Pago, o cliente recebe o link de checkout.</p>
+          </article>
+          <article class="faq-card luxury-frame">
+            <strong>Posso personalizar o atendimento?</strong>
+            <p>Sim. O campo de observacoes permite informar dores, preferencias e necessidades especiais.</p>
+          </article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <a class="floating-whatsapp" id="floatingWhatsappButton" href="#" target="_blank" rel="noreferrer">
+    WhatsApp
+  </a>
+
+  <div class="modal-backdrop hidden" id="adminModal">
+    <div class="admin-modal luxury-frame" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+      <div class="admin-modal-header">
+        <div>
+          <span class="section-kicker">Painel administrativo</span>
+          <h3 id="adminTitle">Gerenciar agendamentos e configuracoes</h3>
+        </div>
+        <button class="close-button" id="closeAdminModal" type="button" aria-label="Fechar painel">
+          x
+        </button>
+      </div>
+
+      <div class="admin-login" id="adminLogin">
+        <label>
+          Senha admin
+          <input id="adminPassword" type="password" placeholder="Digite a senha" />
+        </label>
+        <button class="primary-button" id="adminLoginButton" type="button">Entrar</button>
+        <p class="admin-hint">Use sua senha administrativa.</p>
+      </div>
+
+      <div class="admin-content hidden" id="adminContent">
+        <section class="admin-settings">
+          <h4>Configuracoes rapidas</h4>
+          <div class="form-grid compact-grid">
+            <label>
+              WhatsApp do negocio
+              <input id="businessWhatsapp" type="text" placeholder="5511999999999" />
+            </label>
+            <label>
+              Link Mercado Pago
+              <input id="mercadoPagoCheckout" type="url" placeholder="https://www.mercadopago.com.br/..." />
+            </label>
+            <label>
+              Chave Pix
+              <input id="pixKey" type="text" placeholder="Digite a chave Pix" />
+            </label>
+            <label>
+              Endereco de atendimento
+              <input id="businessAddress" type="text" placeholder="Digite o endereco ou regiao principal" />
+            </label>
+            <label class="full-width">
+              Servicos de massagens (uma linha por servico no formato: Nome|Duracao|Preco)
+              <textarea id="servicesCatalog" rows="6" placeholder="Massagem Relaxante Flow|60 min|180"></textarea>
+            </label>
+            <label>
+              Horarios (separados por virgula, formato HH:MM)
+              <textarea id="timeSlotsConfig" rows="3" placeholder="08:00,09:00,10:00"></textarea>
+            </label>
+            <label>
+              Formas de pagamento (uma por linha)
+              <textarea id="paymentMethodsConfig" rows="3" placeholder="Pix"></textarea>
+            </label>
+            <label>
+              Dias de atendimento (0=Domingo ... 6=Sabado)
+              <input id="allowedWeekdaysConfig" type="text" placeholder="1,2,3,4,5,6" />
+            </label>
+            <label>
+              Datas indisponiveis (uma por linha, YYYY-MM-DD)
+              <textarea id="blockedDatesConfig" rows="3" placeholder="2026-12-25"></textarea>
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="primary-button" id="saveSettingsButton" type="button">Salvar configuracoes</button>
+          </div>
+        </section>
+
+        <section class="admin-stats" id="adminStats"></section>
+
+        <section class="admin-list-section">
+          <div class="admin-list-header">
+            <h4>Agendamentos</h4>
+            <div class="admin-inline-actions">
+              <button class="secondary-button" id="exportServedClientsButton" type="button">
+                Exportar clientes atendidos
+              </button>
+              <button class="secondary-button" id="exportAppointmentsButton" type="button">
+                Exportar JSON
+              </button>
+              <button class="secondary-button" id="clearCompletedButton" type="button">
+                Remover cancelados
+              </button>
+            </div>
+          </div>
+          <div class="admin-filters">
+            <label>
+              Buscar cliente
+              <input id="appointmentSearch" type="text" placeholder="Nome, servico ou telefone" />
+            </label>
+            <label>
+              Status
+              <select id="appointmentStatusFilter">
+                <option value="all">Todos</option>
+                <option value="confirmed">Confirmados</option>
+                <option value="cancelled">Cancelados</option>
+              </select>
+            </label>
+            <label>
+              Pagamento
+              <select id="paymentStatusFilter">
+                <option value="all">Todos</option>
+                <option value="pending">Pendente</option>
+                <option value="paid">Pago</option>
+              </select>
+            </label>
+          </div>
+          <div class="admin-list" id="appointmentsList"></div>
+        </section>
+      </div>
+    </div>
+  </div>
+
+  <script src="site-config.js"></script>
+  <script src="script.js"></script>
+</body>
+
 </html>

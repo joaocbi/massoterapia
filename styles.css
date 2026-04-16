@@ -77,6 +77,31 @@ button {
   letter-spacing: 0.02em;
 }
 
+.brand-block {
+  display: grid;
+  gap: 6px;
+}
+
+.brand-row {
+  display: flex;
+  align-items: center;
+  gap: 0;
+}
+
+.brand-logo {
+  width: 165px;
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  mix-blend-mode: screen;
+  filter: contrast(1.12) saturate(1.08);
+  margin-right: -52px;
+}
+
+.brand-row h1 {
+  margin: 0;
+}
+
 .brand-kicker,
 .section-kicker,
 .hero-badge,
@@ -268,6 +293,12 @@ button {
   font-size: clamp(2.2rem, 4vw, 3.4rem);
 }
 
+.section-helper-text {
+  margin: 0;
+  color: var(--text-soft);
+  font-size: 0.95rem;
+}
+
 .cards-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -317,6 +348,12 @@ button {
   display: grid;
   gap: 14px;
   padding: 20px;
+  cursor: pointer;
+}
+
+.service-card-content:focus-visible {
+  outline: 2px solid rgba(241, 212, 149, 0.8);
+  outline-offset: -2px;
 }
 
 .service-meta,
@@ -385,6 +422,11 @@ label {
   font-size: 0.95rem;
 }
 
+.field-note {
+  color: var(--gold-soft);
+  font-size: 0.8rem;
+}
+
 .full-width {
   grid-column: span 2;
 }
@@ -406,6 +448,27 @@ select:focus,
 textarea:focus {
   border-color: rgba(241, 212, 149, 0.65);
   box-shadow: 0 0 0 3px rgba(216, 177, 94, 0.14);
+}
+
+select option {
+  color: #1b1207;
+  background: #ffffff;
+}
+
+select option:disabled {
+  color: #a64a4a;
+  background: #f6f1ec;
+  font-weight: 700;
+}
+
+select option {
+  color: #1e1407;
+  background: #fff;
+}
+
+select option {
+  color: #1f1f1f;
+  background: #ffffff;
 }
 
 .hidden {
@@ -605,4 +668,79 @@ textarea:focus {
   .section-heading h3 {
     font-size: 2.2rem;
   }
+
+  .brand-row {
+    gap: 0;
+  }
+
+  .brand-logo {
+    width: 120px;
+    margin-right: -38px;
+  }
+}
+
+.radio-group-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+  display: grid;
+  gap: 8px;
+}
+
+.radio-group-fieldset legend {
+  color: var(--text-soft);
+  font-size: 0.95rem;
+  padding: 0;
+}
+
+.radio-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.radio-card {
+  position: relative;
+  display: block;
+  cursor: pointer;
+}
+
+.radio-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.radio-card-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 14px 12px;
+  border: 1px solid rgba(216, 177, 94, 0.18);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--text);
+  font-size: 0.95rem;
+  transition: all 0.2s ease;
+  user-select: none;
+  min-height: 100%;
+}
+
+.radio-card:hover .radio-card-content {
+  border-color: rgba(241, 212, 149, 0.48);
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.radio-card input[type="radio"]:checked + .radio-card-content {
+  border-color: var(--gold-soft);
+  background: rgba(216, 177, 94, 0.14);
+  box-shadow: 0 0 0 1px var(--gold-soft);
+}
+
+.radio-card input[type="radio"]:disabled + .radio-card-content {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background: transparent;
 }

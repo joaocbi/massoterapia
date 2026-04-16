@@ -93,3 +93,9 @@ To enable real Mercado Pago checkout:
 - Local storage was replaced by real API persistence
 - Appointment availability is validated on the server
 - Mercado Pago webhook updates payment status automatically when configured
+
+## Operation guide
+
+For day-to-day usage by client and administrator, see:
+
+- `README-OPERACAO.md`

@@ -1,18 +1,23 @@
 const APP_CONFIG = window.LUXOR_CONFIG || {};
+const ADMIN_ALERT_WHATSAPP = "5542991628586";
+const PREPAYMENT_METHODS = new Set(["Pix", "Cartao de Credito", "Cartao de Debito"]);
 const DEFAULT_SETTINGS = {
   businessWhatsapp: "5511999999999",
   mercadoPagoCheckout: "https://www.mercadopago.com.br/",
   pixKey: "",
   businessAddress: "",
-};
-const AVAILABLE_TIMES = ["09:00", "10:30", "12:00", "14:00", "15:30", "17:00", "18:30", "20:00"];
-const SERVICE_DETAILS = {
-  "Massagem Relaxante Luxor": { duration: "60 min", price: 180 },
-  "Massagem Terapeutica Premium": { duration: "75 min", price: 240 },
-  "Pedras Quentes e Aromas": { duration: "90 min", price: 320 },
-  "Drenagem Linfatica": { duration: "60 min", price: 210 },
-  "Massagem Modeladora": { duration: "50 min", price: 190 },
-  "Atendimento Personalizado": { duration: "Sob consulta", price: 260 },
+  services: [
+    { name: "Massagem Relaxante Flow", duration: "60 min", price: 180 },
+    { name: "Massagem Terapeutica Premium", duration: "75 min", price: 240 },
+    { name: "Pedras Quentes e Aromas", duration: "90 min", price: 320 },
+    { name: "Drenagem Linfatica", duration: "60 min", price: 210 },
+    { name: "Massagem Modeladora", duration: "50 min", price: 190 },
+    { name: "Atendimento Personalizado", duration: "Sob consulta", price: 260 },
+  ],
+  timeSlots: ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"],
+  paymentMethods: ["Pix", "Cartao de Credito", "Cartao de Debito"],
+  allowedWeekdays: [1, 2, 3, 4, 5, 6],
+  blockedDates: [],
 };
 
 const state = {
@@ -47,6 +52,11 @@ const businessWhatsappField = document.getElementById("businessWhatsapp");
 const mercadoPagoCheckoutField = document.getElementById("mercadoPagoCheckout");
 const pixKeyField = document.getElementById("pixKey");
 const businessAddressField = document.getElementById("businessAddress");
+const servicesCatalogField = document.getElementById("servicesCatalog");
+const timeSlotsConfigField = document.getElementById("timeSlotsConfig");
+const paymentMethodsConfigField = document.getElementById("paymentMethodsConfig");
+const allowedWeekdaysConfigField = document.getElementById("allowedWeekdaysConfig");
+const blockedDatesConfigField = document.getElementById("blockedDatesConfig");
 const appointmentSearchField = document.getElementById("appointmentSearch");
 const appointmentStatusFilterField = document.getElementById("appointmentStatusFilter");
 const paymentStatusFilterField = document.getElementById("paymentStatusFilter");
@@ -58,11 +68,11 @@ const summaryPayment = document.getElementById("summaryPayment");
 const summaryRegion = document.getElementById("summaryRegion");
 const summaryDateTime = document.getElementById("summaryDateTime");
 
-console.log("[Luxor] Site initialized");
-console.log("[Luxor] App config:", APP_CONFIG);
+console.log("[Flow] Site initialized");
+console.log("[Flow] App config:", APP_CONFIG);
 
 init().catch((error) => {
-  console.error("[Luxor] Failed to initialize application", error);
+  console.error("[Flow] Failed to initialize application", error);
   window.alert("Nao foi possivel inicializar o sistema. Verifique a API.");
 });
 
@@ -76,6 +86,7 @@ async function init() {
 
 function bindEvents() {
   bookingForm.addEventListener("submit", handleBookingSubmit);
+  dateField.addEventListener("change", enforceBusinessDaySelection);
   dateField.addEventListener("change", renderTimeOptions);
   dateField.addEventListener("change", updateBookingSummary);
   timeField.addEventListener("change", updateBookingSummary);
@@ -85,11 +96,19 @@ function bindEvents() {
 
   document.querySelectorAll(".service-select-button").forEach((button) => {
     button.addEventListener("click", () => {
-      const selectedService = button.dataset.service || "";
-      massageTypeField.value = selectedService;
-      updateBookingSummary();
-      document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
-      console.log("[Luxor] Service pre-selected:", selectedService);
+      selectServiceAndScroll(button.dataset.service || "");
+    });
+  });
+
+  document.querySelectorAll("[data-service-card]").forEach((card) => {
+    card.addEventListener("click", () => {
+      selectServiceAndScroll(card.dataset.serviceCard || "");
+    });
+    card.addEventListener("keydown", (event) => {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        selectServiceAndScroll(card.dataset.serviceCard || "");
+      }
     });
   });
 
@@ -99,6 +118,7 @@ function bindEvents() {
   document.getElementById("saveSettingsButton").addEventListener("click", saveSettings);
   document.getElementById("clearCompletedButton").addEventListener("click", clearCancelledAppointments);
   document.getElementById("exportAppointmentsButton").addEventListener("click", exportAppointments);
+  document.getElementById("exportServedClientsButton").addEventListener("click", exportServedClients);
   appointmentSearchField.addEventListener("input", handleFiltersChange);
   appointmentStatusFilterField.addEventListener("change", handleFiltersChange);
   paymentStatusFilterField.addEventListener("change", handleFiltersChange);
@@ -107,6 +127,25 @@ function bindEvents() {
       closeAdminModal();
     }
   });
+}
+
+function getRadioValue(name) {
+  const checked = document.querySelector(`input[name="${name}"]:checked`);
+  return checked ? checked.value : "";
+}
+
+function selectServiceAndScroll(selectedService) {
+  if (!selectedService) {
+    return;
+  }
+
+  const radio = massageTypeField.querySelector(`input[value="${selectedService}"]`);
+  if (radio) {
+    radio.checked = true;
+  }
+  updateBookingSummary();
+  document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
+  console.log("[Flow] Service pre-selected:", selectedService);
 }
 
 async function handleBookingSubmit(event) {
@@ -125,7 +164,13 @@ async function handleBookingSubmit(event) {
     customerNotes: formData.get("customerNotes")?.toString().trim(),
   };
 
-  console.log("[Luxor] Booking submit payload:", bookingPayload);
+  console.log("[Flow] Booking submit payload:", bookingPayload);
+
+  if (!isDateSelectable(bookingPayload.appointmentDate)) {
+    window.alert("A data selecionada nao esta disponivel para atendimento.");
+    console.warn("[Flow] Unavailable booking date blocked", bookingPayload.appointmentDate);
+    return;
+  }
 
   try {
     const result = await apiRequest("/api/appointments", {
@@ -145,7 +190,7 @@ async function handleBookingSubmit(event) {
     setMinimumDate();
     updateBookingSummary();
   } catch (error) {
-    console.error("[Luxor] Failed to create booking", error);
+    console.error("[Flow] Failed to create booking", error);
     window.alert(error.message || "Nao foi possivel concluir o agendamento.");
   }
 }
@@ -159,6 +204,11 @@ function showConfirmation(appointment, checkoutUrl) {
     `${appointment.massageType} agendada para ${readableDate} as ${appointment.appointmentTime}. ` +
     `Pagamento escolhido: ${appointment.paymentMethod}. Valor: ${formatCurrency(appointment.amount)}.`;
 
+  if (isPrepaymentMethod(appointment.paymentMethod)) {
+    confirmationText.textContent +=
+      " Pagamento antecipado obrigatorio. Envie o comprovante para confirmar definitivamente a reserva.";
+  }
+
   if (appointment.paymentMethod === "Pix" && state.settings.pixKey) {
     confirmationText.textContent += ` Chave Pix para pagamento: ${state.settings.pixKey}.`;
   }
@@ -171,44 +221,58 @@ function showConfirmation(appointment, checkoutUrl) {
   confirmationCard.classList.remove("hidden");
   confirmationCard.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  if (appointment.paymentMethod === "Mercado Pago" && checkoutUrl) {
+  if (isPrepaymentMethod(appointment.paymentMethod) && checkoutUrl) {
     mercadoPagoLink.classList.remove("hidden");
     mercadoPagoLink.href = checkoutUrl;
+    mercadoPagoLink.textContent = "Pagar agora (Mercado Pago)";
   } else {
     mercadoPagoLink.classList.add("hidden");
     mercadoPagoLink.href = "#";
   }
 
-  console.log("[Luxor] Confirmation displayed for booking:", appointment.id);
+  if (isPrepaymentMethod(appointment.paymentMethod)) {
+    notifyAdminPrepayment(appointment);
+  }
+
+  console.log("[Flow] Confirmation displayed for booking:", appointment.id);
 }
 
 function renderTimeOptions() {
   const selectedDate = dateField.value;
+
+  if (selectedDate && !isDateSelectable(selectedDate)) {
+    timeField.innerHTML = '<div class="field-note">Selecione uma data valida</div>';
+    console.warn("[Flow] Invalid booking day selected:", selectedDate);
+    return;
+  }
+
   const occupiedTimes = new Set(
-    state.availability
+    getAvailabilityArray()
       .filter((item) => item.appointmentDate === selectedDate && item.status !== "cancelled")
       .map((item) => item.appointmentTime)
   );
 
-  const previousValue = timeField.value;
-  timeField.innerHTML = '<option value="">Selecione</option>';
+  const previousValue = getRadioValue("appointmentTime");
+  timeField.innerHTML = '';
 
-  AVAILABLE_TIMES.forEach((time) => {
-    const option = document.createElement("option");
+  state.settings.timeSlots.forEach((time) => {
     const isBooked = occupiedTimes.has(time);
+    const label = document.createElement("label");
+    label.className = "radio-card";
 
-    option.value = time;
-    option.textContent = isBooked ? `${time} - indisponivel` : time;
-    option.disabled = isBooked;
-
-    timeField.appendChild(option);
+    label.innerHTML = `
+      <input type="radio" name="appointmentTime" value="${time}" required ${isBooked ? "disabled" : ""}>
+      <div class="radio-card-content">${time}</div>
+    `;
+    timeField.appendChild(label);
   });
 
   if (previousValue && !occupiedTimes.has(previousValue)) {
-    timeField.value = previousValue;
+    const radio = timeField.querySelector(`input[value="${previousValue}"]`);
+    if (radio) radio.checked = true;
   }
 
-  console.log("[Luxor] Time options rendered for date:", selectedDate, "occupied:", [...occupiedTimes]);
+  console.log("[Flow] Time options rendered for date:", selectedDate, "occupied:", [...occupiedTimes]);
 }
 
 function renderAppointments() {
@@ -263,18 +327,18 @@ function renderAppointments() {
     });
   });
 
-  console.log("[Luxor] Appointment list rendered");
+  console.log("[Flow] Appointment list rendered");
 }
 
 async function handleAppointmentAction(action, appointmentId) {
   const appointment = state.appointments.find((item) => item.id === appointmentId);
 
   if (!appointment) {
-    console.warn("[Luxor] Appointment not found for action:", action, appointmentId);
+    console.warn("[Flow] Appointment not found for action:", action, appointmentId);
     return;
   }
 
-  console.log("[Luxor] Appointment action:", action, appointment);
+  console.log("[Flow] Appointment action:", action, appointment);
 
   if (action === "whatsapp") {
     const url = buildWhatsappUrl(state.settings.businessWhatsapp, buildWhatsappMessage(appointment));
@@ -290,7 +354,7 @@ async function handleAppointmentAction(action, appointmentId) {
   try {
     await updateAppointment(appointmentId, payload);
   } catch (error) {
-    console.error("[Luxor] Failed to update appointment", error);
+    console.error("[Flow] Failed to update appointment", error);
     window.alert(error.message || "Nao foi possivel atualizar o agendamento.");
   }
 }
@@ -334,7 +398,7 @@ function renderAdminStats() {
     </article>
   `;
 
-  console.log("[Luxor] Admin stats updated");
+  console.log("[Flow] Admin stats updated");
 }
 
 function openAdminModal() {
@@ -342,7 +406,7 @@ function openAdminModal() {
   adminContent.classList.add("hidden");
   hydrateSettingsFields();
   adminModal.classList.remove("hidden");
-  console.log("[Luxor] Admin modal opened");
+  console.log("[Flow] Admin modal opened");
 }
 
 function closeAdminModal() {
@@ -350,7 +414,7 @@ function closeAdminModal() {
   adminLogin.classList.remove("hidden");
   adminContent.classList.add("hidden");
   adminPasswordField.value = "";
-  console.log("[Luxor] Admin modal closed");
+  console.log("[Flow] Admin modal closed");
 }
 
 async function handleAdminLogin() {
@@ -358,7 +422,7 @@ async function handleAdminLogin() {
 
   if (!state.adminPassword) {
     window.alert("Informe a senha administrativa.");
-    console.warn("[Luxor] Empty admin password rejected");
+    console.warn("[Flow] Empty admin password rejected");
     return;
   }
 
@@ -369,20 +433,31 @@ async function handleAdminLogin() {
     adminContent.classList.remove("hidden");
     renderAdminStats();
     renderAppointments();
-    console.log("[Luxor] Admin login successful");
+    console.log("[Flow] Admin login successful");
   } catch (error) {
     state.adminPassword = "";
     window.alert("Senha incorreta ou API indisponivel.");
-    console.warn("[Luxor] Invalid admin login", error);
+    console.warn("[Flow] Invalid admin login", error);
   }
 }
 
 async function saveSettings() {
+  const parsedServices = parseServicesCatalog(servicesCatalogField.value);
+  const parsedTimeSlots = parseTimeSlots(timeSlotsConfigField.value);
+  const parsedPaymentMethods = parsePaymentMethods(paymentMethodsConfigField.value);
+  const parsedAllowedWeekdays = parseAllowedWeekdays(allowedWeekdaysConfigField.value);
+  const parsedBlockedDates = parseBlockedDates(blockedDatesConfigField.value);
+
   const payload = {
     businessWhatsapp: sanitizeWhatsappNumber(businessWhatsappField.value),
     mercadoPagoCheckout: mercadoPagoCheckoutField.value.trim() || DEFAULT_SETTINGS.mercadoPagoCheckout,
     pixKey: pixKeyField.value.trim(),
     businessAddress: businessAddressField.value.trim(),
+    services: parsedServices,
+    timeSlots: parsedTimeSlots,
+    paymentMethods: parsedPaymentMethods,
+    allowedWeekdays: parsedAllowedWeekdays,
+    blockedDates: parsedBlockedDates,
   };
 
   try {
@@ -391,12 +466,15 @@ async function saveSettings() {
       body: payload,
       includeAdminPassword: true,
     });
+    renderMassageOptions();
+    renderPaymentMethodOptions();
+    renderTimeOptions();
     refreshWhatsappLinks();
     updateBookingSummary();
     window.alert("Configuracoes salvas com sucesso.");
-    console.log("[Luxor] Settings saved:", state.settings);
+    console.log("[Flow] Settings saved:", state.settings);
   } catch (error) {
-    console.error("[Luxor] Failed to save settings", error);
+    console.error("[Flow] Failed to save settings", error);
     window.alert(error.message || "Nao foi possivel salvar as configuracoes.");
   }
 }
@@ -406,6 +484,13 @@ function hydrateSettingsFields() {
   mercadoPagoCheckoutField.value = state.settings.mercadoPagoCheckout;
   pixKeyField.value = state.settings.pixKey;
   businessAddressField.value = state.settings.businessAddress;
+  servicesCatalogField.value = state.settings.services
+    .map((service) => `${service.name}|${service.duration}|${service.price}`)
+    .join("\n");
+  timeSlotsConfigField.value = state.settings.timeSlots.join(",");
+  paymentMethodsConfigField.value = state.settings.paymentMethods.join("\n");
+  allowedWeekdaysConfigField.value = state.settings.allowedWeekdays.join(",");
+  blockedDatesConfigField.value = state.settings.blockedDates.join("\n");
 }
 
 async function clearCancelledAppointments() {
@@ -418,23 +503,23 @@ async function clearCancelledAppointments() {
     renderAdminStats();
     renderAppointments();
     renderTimeOptions();
-    console.log("[Luxor] Cancelled appointments cleared");
+    console.log("[Flow] Cancelled appointments cleared");
   } catch (error) {
-    console.error("[Luxor] Failed to clear cancelled appointments", error);
+    console.error("[Flow] Failed to clear cancelled appointments", error);
     window.alert(error.message || "Nao foi possivel remover os cancelados.");
   }
 }
 
 function refreshWhatsappLinks() {
   const genericMessage =
-    "Ola, gostaria de saber mais sobre os atendimentos premium da Luxor Massoterapia.";
+    "Ola, gostaria de saber mais sobre os atendimentos premium da Flow Terapias.";
   const url = buildWhatsappUrl(state.settings.businessWhatsapp, genericMessage);
 
   document.getElementById("heroWhatsappButton").href = url;
   document.getElementById("formWhatsappButton").href = url;
   document.getElementById("floatingWhatsappButton").href = url;
 
-  console.log("[Luxor] WhatsApp links refreshed:", url);
+  console.log("[Flow] WhatsApp links refreshed:", url);
 }
 
 function handleFiltersChange() {
@@ -442,11 +527,11 @@ function handleFiltersChange() {
   state.filters.status = appointmentStatusFilterField.value;
   state.filters.paymentStatus = paymentStatusFilterField.value;
   renderAppointments();
-  console.log("[Luxor] Filters updated:", state.filters);
+  console.log("[Flow] Filters updated:", state.filters);
 }
 
 function getFilteredAppointments() {
-  return state.appointments.filter((appointment) => {
+  return getAppointmentsArray().filter((appointment) => {
     const matchesSearch =
       !state.filters.search ||
       appointment.customerName.toLowerCase().includes(state.filters.search) ||
@@ -471,36 +556,73 @@ function exportAppointments() {
   const anchor = document.createElement("a");
 
   anchor.href = url;
-  anchor.download = "luxor-agendamentos.json";
+  anchor.download = "flow-terapias-agendamentos.json";
   anchor.click();
   URL.revokeObjectURL(url);
 
-  console.log("[Luxor] Appointments exported");
+  console.log("[Flow] Appointments exported");
+}
+
+function exportServedClients() {
+  const servedClients = state.appointments
+    .filter((appointment) => appointment.status === "confirmed")
+    .map((appointment) => ({
+      customerName: appointment.customerName,
+      customerPhone: appointment.customerPhone,
+      customerEmail: appointment.customerEmail,
+      massageType: appointment.massageType,
+      appointmentDate: appointment.appointmentDate,
+      appointmentTime: appointment.appointmentTime,
+      paymentMethod: appointment.paymentMethod,
+      paymentStatus: appointment.paymentStatus,
+      amount: appointment.amount,
+      duration: appointment.duration,
+      serviceRegion: appointment.serviceRegion,
+      customerNotes: appointment.customerNotes,
+      createdAt: appointment.createdAt,
+    }));
+
+  const exportData = JSON.stringify(servedClients, null, 2);
+  const blob = new Blob([exportData], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+
+  anchor.href = url;
+  anchor.download = "flow-terapias-clientes-atendidos.json";
+  anchor.click();
+  URL.revokeObjectURL(url);
+
+  console.log("[Flow] Served clients exported:", servedClients.length);
 }
 
 async function loadPublicData() {
   await Promise.all([loadSettings(), loadAvailability()]);
+  renderMassageOptions();
+  renderPaymentMethodOptions();
   refreshWhatsappLinks();
   renderTimeOptions();
 }
 
 async function loadSettings() {
-  state.settings = await apiRequest("/api/settings");
-  console.log("[Luxor] Loaded settings from API:", state.settings);
+  const apiSettings = await apiRequest("/api/settings");
+  state.settings = normalizeSettings(apiSettings);
+  console.log("[Flow] Loaded settings from API:", state.settings);
   return state.settings;
 }
 
 async function loadAvailability() {
-  state.availability = await apiRequest("/api/appointments/availability");
-  console.log("[Luxor] Loaded availability:", state.availability);
+  const apiAvailability = await apiRequest("/api/appointments/availability");
+  state.availability = Array.isArray(apiAvailability) ? apiAvailability : [];
+  console.log("[Flow] Loaded availability:", state.availability);
   return state.availability;
 }
 
 async function loadAdminAppointments() {
-  state.appointments = await apiRequest("/api/appointments", {
+  const apiAppointments = await apiRequest("/api/appointments", {
     includeAdminPassword: true,
   });
-  console.log("[Luxor] Loaded admin appointments:", state.appointments);
+  state.appointments = Array.isArray(apiAppointments) ? apiAppointments : [];
+  console.log("[Flow] Loaded admin appointments:", state.appointments);
   return state.appointments;
 }
 
@@ -520,7 +642,32 @@ function setMinimumDate() {
   const today = new Date();
   const minDate = today.toISOString().split("T")[0];
   dateField.min = minDate;
-  console.log("[Luxor] Min date set:", minDate);
+  console.log("[Flow] Min date set:", minDate);
+}
+
+function enforceBusinessDaySelection() {
+  if (!dateField.value) {
+    return;
+  }
+
+  if (isDateSelectable(dateField.value)) {
+    return;
+  }
+
+  dateField.value = "";
+  timeField.innerHTML = '';
+  updateBookingSummary();
+  window.alert("Selecione uma data disponivel para atendimento.");
+  console.warn("[Flow] Unavailable date selected and cleared");
+}
+
+function isDateSelectable(dateString) {
+  if (!dateString) {
+    return false;
+  }
+
+  const date = new Date(`${dateString}T00:00:00`);
+  return state.settings.allowedWeekdays.includes(date.getDay()) && !state.settings.blockedDates.includes(dateString);
 }
 
 function buildWhatsappMessage(appointment) {
@@ -531,7 +678,7 @@ function buildWhatsappMessage(appointment) {
       : "";
 
   return (
-    `Ola ${appointment.customerName}, seu agendamento na Luxor Massoterapia foi confirmado para ` +
+    `Ola ${appointment.customerName}, seu agendamento na Flow Terapias foi confirmado para ` +
     `${formatDate(appointment.appointmentDate)} as ${appointment.appointmentTime}. ` +
     `Servico: ${appointment.massageType}. Duracao: ${appointment.duration || getServiceDuration(appointment.massageType)}. ` +
     `Valor: ${formatCurrency(appointment.amount || getServiceAmount(appointment.massageType))}. ` +
@@ -543,6 +690,30 @@ function buildWhatsappMessage(appointment) {
 function buildWhatsappUrl(phone, message) {
   const sanitizedPhone = sanitizeWhatsappNumber(phone);
   return `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
+}
+
+function notifyAdminPrepayment(appointment) {
+  const alertMessage =
+    "Pagamento antecipado solicitado. Um aviso para o WhatsApp administrativo sera aberto agora.";
+  window.alert(alertMessage);
+
+  const adminMessage =
+    `Novo pedido de pagamento antecipado - Flow Terapias.\n` +
+    `Cliente: ${appointment.customerName}\n` +
+    `WhatsApp: ${appointment.customerPhone}\n` +
+    `Servico: ${appointment.massageType}\n` +
+    `Data: ${formatDate(appointment.appointmentDate)}\n` +
+    `Horario: ${appointment.appointmentTime}\n` +
+    `Pagamento: ${appointment.paymentMethod}\n` +
+    `Valor: ${formatCurrency(appointment.amount)}.`;
+
+  const adminUrl = buildWhatsappUrl(ADMIN_ALERT_WHATSAPP, adminMessage);
+  window.open(adminUrl, "_blank", "noopener,noreferrer");
+  console.log("[Flow] Admin prepayment alert sent:", appointment.id);
+}
+
+function isPrepaymentMethod(paymentMethod) {
+  return PREPAYMENT_METHODS.has(paymentMethod);
 }
 
 function sanitizeWhatsappNumber(phone) {
@@ -566,18 +737,173 @@ function formatCurrency(amount) {
 }
 
 function getServiceAmount(serviceName) {
-  return SERVICE_DETAILS[serviceName]?.price || 0;
+  const service = state.settings.services.find((item) => item.name === serviceName);
+  return service?.price || 0;
 }
 
 function getServiceDuration(serviceName) {
-  return SERVICE_DETAILS[serviceName]?.duration || "Sob consulta";
+  const service = state.settings.services.find((item) => item.name === serviceName);
+  return service?.duration || "Sob consulta";
+}
+
+function renderMassageOptions() {
+  const previousValue = getRadioValue("massageType");
+  massageTypeField.innerHTML = '';
+
+  state.settings.services.forEach((service) => {
+    const label = document.createElement("label");
+    label.className = "radio-card";
+
+    label.innerHTML = `
+      <input type="radio" name="massageType" value="${service.name}" required>
+      <div class="radio-card-content">
+        <span style="display:block;">${service.name}</span>
+        <strong style="color:var(--gold-soft);font-size:0.85rem;margin-top:6px;display:block;">${formatCurrency(service.price)}</strong>
+      </div>
+    `;
+    massageTypeField.appendChild(label);
+  });
+
+  if (previousValue && state.settings.services.some((service) => service.name === previousValue)) {
+    const radio = massageTypeField.querySelector(`input[value="${previousValue}"]`);
+    if (radio) radio.checked = true;
+  }
+}
+
+function renderPaymentMethodOptions() {
+  const previousValue = getRadioValue("paymentMethod");
+  paymentMethodField.innerHTML = '';
+
+  state.settings.paymentMethods.forEach((method) => {
+    const label = document.createElement("label");
+    label.className = "radio-card";
+
+    label.innerHTML = `
+      <input type="radio" name="paymentMethod" value="${method}" required>
+      <div class="radio-card-content">${method}</div>
+    `;
+    paymentMethodField.appendChild(label);
+  });
+
+  if (previousValue && state.settings.paymentMethods.includes(previousValue)) {
+    const radio = paymentMethodField.querySelector(`input[value="${previousValue}"]`);
+    if (radio) radio.checked = true;
+  }
+}
+
+function parseServicesCatalog(value) {
+  const lines = value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean);
+  const services = lines
+    .map((line) => {
+      const [nameRaw, durationRaw, priceRaw] = line.split("|");
+      const name = String(nameRaw || "").trim();
+      const duration = String(durationRaw || "").trim();
+      const price = Number(String(priceRaw || "").replace(",", "."));
+
+      if (!name || !duration || !Number.isFinite(price) || price < 0) {
+        return null;
+      }
+
+      return { name, duration, price };
+    })
+    .filter(Boolean);
+
+  return services.length ? services : DEFAULT_SETTINGS.services;
+}
+
+function parseTimeSlots(value) {
+  const slots = value
+    .split(",")
+    .map((slot) => slot.trim())
+    .filter((slot) => /^\d{2}:\d{2}$/.test(slot));
+  return slots.length ? [...new Set(slots)] : DEFAULT_SETTINGS.timeSlots;
+}
+
+function parsePaymentMethods(value) {
+  const methods = value
+    .split("\n")
+    .map((method) => method.trim())
+    .filter(Boolean);
+  return methods.length ? [...new Set(methods)] : DEFAULT_SETTINGS.paymentMethods;
+}
+
+function parseAllowedWeekdays(value) {
+  const weekdays = value
+    .split(",")
+    .map((day) => Number(day.trim()))
+    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+  return weekdays.length ? [...new Set(weekdays)] : DEFAULT_SETTINGS.allowedWeekdays;
+}
+
+function parseBlockedDates(value) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter((line) => /^\d{4}-\d{2}-\d{2}$/.test(line));
+}
+
+function normalizeSettings(settings) {
+  return {
+    businessWhatsapp: String(settings?.businessWhatsapp || DEFAULT_SETTINGS.businessWhatsapp),
+    mercadoPagoCheckout: String(settings?.mercadoPagoCheckout || DEFAULT_SETTINGS.mercadoPagoCheckout),
+    pixKey: String(settings?.pixKey || ""),
+    businessAddress: String(settings?.businessAddress || ""),
+    services: sanitizeServicesArray(settings?.services),
+    timeSlots: sanitizeTimeSlotsArray(settings?.timeSlots),
+    paymentMethods: sanitizePaymentMethodsArray(settings?.paymentMethods),
+    allowedWeekdays: sanitizeAllowedWeekdaysArray(settings?.allowedWeekdays),
+    blockedDates: sanitizeBlockedDatesArray(settings?.blockedDates),
+  };
+}
+
+function sanitizeServicesArray(services) {
+  const value = Array.isArray(services) ? services : [];
+  const normalized = value
+    .map((service) => ({
+      name: String(service?.name || "").trim(),
+      duration: String(service?.duration || "").trim(),
+      price: Number(service?.price || 0),
+    }))
+    .filter((service) => service.name && service.duration && Number.isFinite(service.price) && service.price >= 0);
+
+  return normalized.length ? normalized : DEFAULT_SETTINGS.services;
+}
+
+function sanitizeTimeSlotsArray(timeSlots) {
+  const value = Array.isArray(timeSlots) ? timeSlots : [];
+  const normalized = [...new Set(value.map((slot) => String(slot || "").trim()))].filter((slot) =>
+    /^\d{2}:\d{2}$/.test(slot)
+  );
+  return normalized.length ? normalized : DEFAULT_SETTINGS.timeSlots;
+}
+
+function sanitizePaymentMethodsArray(paymentMethods) {
+  const value = Array.isArray(paymentMethods) ? paymentMethods : [];
+  const normalized = [...new Set(value.map((method) => String(method || "").trim()).filter(Boolean))];
+  return normalized.length ? normalized : DEFAULT_SETTINGS.paymentMethods;
+}
+
+function sanitizeAllowedWeekdaysArray(allowedWeekdays) {
+  const value = Array.isArray(allowedWeekdays) ? allowedWeekdays : [];
+  const normalized = [...new Set(value.map((day) => Number(day)).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))];
+  return normalized.length ? normalized : DEFAULT_SETTINGS.allowedWeekdays;
+}
+
+function sanitizeBlockedDatesArray(blockedDates) {
+  const value = Array.isArray(blockedDates) ? blockedDates : [];
+  return [...new Set(value.map((date) => String(date || "").trim()))].filter((date) =>
+    /^\d{4}-\d{2}-\d{2}$/.test(date)
+  );
 }
 
 function updateBookingSummary() {
-  const selectedService = massageTypeField.value;
+  const selectedService = getRadioValue("massageType");
   const selectedDate = dateField.value;
-  const selectedTime = timeField.value;
-  const selectedPayment = paymentMethodField.value;
+  const selectedTime = getRadioValue("appointmentTime");
+  const selectedPayment = getRadioValue("paymentMethod");
   const selectedRegion = serviceRegionField.value.trim();
 
   summaryService.textContent = selectedService || "Selecione uma massagem";
@@ -594,7 +920,7 @@ function updateBookingSummary() {
     summaryDateTime.textContent = "-";
   }
 
-  console.log("[Luxor] Booking summary updated", {
+  console.log("[Flow] Booking summary updated", {
     selectedService,
     selectedDate,
     selectedTime,
@@ -613,6 +939,14 @@ function getStatusClassName(status) {
   }
 
   return "status-pending";
+}
+
+function getAvailabilityArray() {
+  return Array.isArray(state.availability) ? state.availability : [];
+}
+
+function getAppointmentsArray() {
+  return Array.isArray(state.appointments) ? state.appointments : [];
 }
 
 function getPaymentStatusClassName(status) {
