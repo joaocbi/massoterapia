@@ -305,7 +305,14 @@ button {
   gap: 18px;
 }
 
-.experience-grid,
+/* Four cards in one row on desktop (Diferenciais Flow) */
+.experience-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 18px;
+  align-items: stretch;
+}
+
 .testimonials-grid,
 .faq-grid {
   display: grid;
@@ -626,13 +633,16 @@ select option {
   .hero-section,
   .booking-layout,
   .cards-grid,
-  .experience-grid,
   .testimonials-grid,
   .faq-grid,
   .hero-highlights,
   .admin-stats,
   .admin-filters {
     grid-template-columns: 1fr;
+  }
+
+  .experience-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .hero-card {
@@ -644,6 +654,10 @@ select option {
   .page-shell {
     width: min(100% - 20px, 1200px);
     padding-top: 16px;
+  }
+
+  .experience-grid {
+    grid-template-columns: 1fr;
   }
 
   .topbar {
