@@ -60,6 +60,9 @@ app.use(
       console.warn("[Flow API] Blocked CORS origin:", origin);
       callback(new Error("Origin not allowed by CORS"));
     },
+    methods: ["GET", "HEAD", "PUT", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "x-admin-password"],
+    optionsSuccessStatus: 204,
   })
 );
 app.use((request, response, next) => {

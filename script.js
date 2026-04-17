@@ -989,15 +989,20 @@ function setFieldValue(field, value) {
 }
 
 async function apiRequest(endpoint, options = {}) {
+  const method = options.method || "GET";
   const requestOptions = {
-    method: options.method || "GET",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.includeAdminPassword && state.adminPassword
-        ? { "x-admin-password": state.adminPassword }
-        : {}),
-    },
+    method,
+    headers: {},
   };
+
+  if (options.includeAdminPassword && state.adminPassword) {
+    requestOptions.headers["x-admin-password"] = state.adminPassword;
+  }
+
+  // Avoid Content-Type on GET/HEAD so the request stays "simple" (no CORS preflight noise).
+  if (method !== "GET" && method !== "HEAD") {
+    requestOptions.headers["Content-Type"] = "application/json";
+  }
 
   if (options.body) {
     requestOptions.body = JSON.stringify(options.body);
@@ -1007,7 +1012,10 @@ async function apiRequest(endpoint, options = {}) {
   const data = await response.json().catch(() => ({}));
 
   if (!response.ok) {
-    throw new Error(data.message || "Falha na comunicacao com a API.");
+    const statusHint = `${response.status} ${response.statusText || ""}`.trim();
+    const message = data.message || statusHint || "Falha na comunicacao com a API.";
+    console.error("[Flow] API error:", endpoint, statusHint, data);
+    throw new Error(message);
   }
 
   return data;
