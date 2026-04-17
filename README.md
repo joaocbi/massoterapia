@@ -75,6 +75,7 @@ It deploys:
 - `styles.css`
 - `script.js`
 - `site-config.js`
+- `img/logo-flow.png`, `img/flowclass.png`
 
 ## Backend deploy
 
