@@ -93,6 +93,7 @@ app.get("/api/settings", async (request, response, next) => {
     const settings = await loadSettings();
     response.json(settings);
   } catch (error) {
+    console.error("[Flow API] GET /api/settings failed:", error);
     next(error);
   }
 });
@@ -542,11 +543,19 @@ function isAllowedWeekday(dateString, allowedWeekdays) {
 
 function parseJsonArray(value, fallback) {
   try {
-    if (!value) {
+    if (value == null || value === "") {
       return fallback;
     }
 
-    const parsed = JSON.parse(value);
+    if (Array.isArray(value)) {
+      return value;
+    }
+
+    if (typeof value === "object") {
+      return fallback;
+    }
+
+    const parsed = JSON.parse(String(value));
     return Array.isArray(parsed) ? parsed : fallback;
   } catch (error) {
     return fallback;

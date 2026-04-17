@@ -12,16 +12,53 @@ function toPgSql(sql) {
   });
 }
 
+function isRetryablePgError(error) {
+  const code = error && error.code;
+  const msg = String((error && error.message) || error || "");
+  return (
+    code === "ECONNRESET" ||
+    code === "ETIMEDOUT" ||
+    code === "EPIPE" ||
+    code === "ECONNREFUSED" ||
+    code === "57P01" ||
+    code === "08006" ||
+    code === "08003" ||
+    msg.includes("Connection terminated") ||
+    msg.includes("timeout") ||
+    msg.includes("the database system is starting up")
+  );
+}
+
+async function queryWithRetry(pool, text, params, attempts = 4) {
+  let lastError;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    try {
+      return await pool.query(text, params);
+    } catch (error) {
+      lastError = error;
+      if (!isRetryablePgError(error) || attempt === attempts - 1) {
+        throw error;
+      }
+      const delayMs = 200 * (attempt + 1);
+      console.warn("[Flow API PG] query retry after transient error:", error.code || error.message, delayMs);
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+  throw lastError;
+}
+
 function getPool() {
   if (!global[GLOBAL_POOL_KEY]) {
     const connectionString = process.env.DATABASE_URL;
     const isLocal = /localhost|127\.0\.0\.1/.test(String(connectionString || ""));
+    const isVercel = Boolean(process.env.VERCEL);
     global[GLOBAL_POOL_KEY] = new Pool({
       connectionString,
-      max: isLocal ? 5 : 10,
-      idleTimeoutMillis: 20000,
-      connectionTimeoutMillis: 15000,
+      max: isLocal ? 5 : isVercel ? 1 : 10,
+      idleTimeoutMillis: isVercel ? 8000 : 20000,
+      connectionTimeoutMillis: isVercel ? 25000 : 15000,
       ssl: isLocal ? false : { rejectUnauthorized: false },
+      allowExitOnIdle: isVercel,
     });
     global[GLOBAL_POOL_KEY].on("error", (error) => {
       console.error("[Flow API PG] Pool error:", error);
@@ -89,6 +126,11 @@ async function initializeDatabase() {
     await initPromise;
   } catch (error) {
     initPromise = null;
+    const dead = global[GLOBAL_POOL_KEY];
+    if (dead) {
+      delete global[GLOBAL_POOL_KEY];
+      dead.end().catch(() => {});
+    }
     throw error;
   }
 
@@ -99,7 +141,7 @@ async function run(sql, params = []) {
   await initializeDatabase();
   const pool = getPool();
   const text = toPgSql(sql);
-  const result = await pool.query(text, params);
+  const result = await queryWithRetry(pool, text, params);
   return {
     lastID: 0,
     changes: result.rowCount ?? 0,
@@ -109,14 +151,14 @@ async function run(sql, params = []) {
 async function get(sql, params = []) {
   await initializeDatabase();
   const pool = getPool();
-  const result = await pool.query(toPgSql(sql), params);
+  const result = await queryWithRetry(pool, toPgSql(sql), params);
   return result.rows[0] || null;
 }
 
 async function all(sql, params = []) {
   await initializeDatabase();
   const pool = getPool();
-  const result = await pool.query(toPgSql(sql), params);
+  const result = await queryWithRetry(pool, toPgSql(sql), params);
   return result.rows;
 }
 
