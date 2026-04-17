@@ -47,7 +47,12 @@ const mercadopagoClient = MERCADO_PAGO_ACCESS_TOKEN
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin) || isTrustedVercelOrigin(origin)) {
+      if (
+        !origin ||
+        allowedOrigins.includes(origin) ||
+        isTrustedVercelOrigin(origin) ||
+        isTrustedGithubPagesOrigin(origin)
+      ) {
         callback(null, true);
         return;
       }
@@ -521,6 +526,10 @@ function parseAllowedOrigins(value) {
 
 function isTrustedVercelOrigin(origin) {
   return /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(String(origin || "").trim());
+}
+
+function isTrustedGithubPagesOrigin(origin) {
+  return /^https:\/\/[a-z0-9-]+\.github\.io$/i.test(String(origin || "").trim());
 }
 
 function isAllowedWeekday(dateString, allowedWeekdays) {

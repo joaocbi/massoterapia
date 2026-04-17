@@ -1,4 +1,6 @@
 const APP_CONFIG = window.LUXOR_CONFIG || {};
+/** Used when the static site is on GitHub Pages and apiBaseUrl is not set in site-config.js */
+const FALLBACK_API_BASE = "https://flowterapia.vercel.app";
 const ADMIN_ALERT_WHATSAPP = "5542991628586";
 const PREPAYMENT_METHODS = new Set(["Pix", "Cartao de Credito", "Cartao de Debito"]);
 const DEFAULT_SETTINGS = {
@@ -73,7 +75,11 @@ console.log("[Flow] App config:", APP_CONFIG);
 
 init().catch((error) => {
   console.error("[Flow] Failed to initialize application", error);
-  window.alert("Nao foi possivel inicializar o sistema. Verifique a API.");
+  const detail = error && error.message ? String(error.message) : String(error || "");
+  window.alert(
+    "Nao foi possivel inicializar o sistema. Verifique a API e site-config.js (apiBaseUrl).\n" +
+      (detail ? `Detalhe: ${detail}` : "")
+  );
 });
 
 async function init() {
@@ -597,7 +603,13 @@ function exportServedClients() {
 }
 
 async function loadPublicData() {
-  await Promise.all([loadSettings(), loadAvailability()]);
+  await loadSettings();
+  try {
+    await loadAvailability();
+  } catch (error) {
+    console.error("[Flow] loadAvailability failed; continuing with empty slots", error);
+    state.availability = [];
+  }
   renderMassageOptions();
   renderPaymentMethodOptions();
   refreshWhatsappLinks();
@@ -1002,6 +1014,16 @@ async function apiRequest(endpoint, options = {}) {
 }
 
 function buildApiUrl(endpoint) {
-  const baseUrl = (APP_CONFIG.apiBaseUrl || "").replace(/\/$/, "");
-  return baseUrl ? `${baseUrl}${endpoint}` : endpoint;
+  const configured = (APP_CONFIG.apiBaseUrl || "").replace(/\/$/, "");
+  if (configured) {
+    return `${configured}${endpoint}`;
+  }
+
+  const host = window.location.hostname || "";
+  if (host.endsWith("github.io")) {
+    console.warn("[Flow] apiBaseUrl empty on GitHub Pages; using fallback API:", FALLBACK_API_BASE);
+    return `${FALLBACK_API_BASE}${endpoint}`;
+  }
+
+  return endpoint;
 }

@@ -48,7 +48,7 @@ npm start
 
 ## Frontend config
 
-Edit `site-config.js` before publishing the static website on GitHub Pages.
+Edit `site-config.js` before publishing the static website on GitHub Pages. If `apiBaseUrl` is left empty on `*.github.io`, the app uses the production API at `https://flowterapia.vercel.app` automatically; the backend must allow that origin in CORS (any `*.github.io` is accepted in addition to `FRONTEND_ORIGIN`).
 
 Example:
 
