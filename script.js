@@ -433,7 +433,9 @@ async function handleAdminLogin() {
   }
 
   try {
-    await Promise.all([loadSettings(), loadAdminAppointments()]);
+    // Validate password first (401 = wrong password). Then load public settings — if that 500s, it is not a password issue.
+    await loadAdminAppointments();
+    await loadSettings();
     hydrateSettingsFields();
     adminLogin.classList.add("hidden");
     adminContent.classList.remove("hidden");
@@ -441,9 +443,28 @@ async function handleAdminLogin() {
     renderAppointments();
     console.log("[Flow] Admin login successful");
   } catch (error) {
-    state.adminPassword = "";
-    window.alert("Senha incorreta ou API indisponivel.");
-    console.warn("[Flow] Invalid admin login", error);
+    const msg = String((error && error.message) || error || "");
+    const isWrongPassword =
+      msg.includes("Acesso administrativo negado") || msg.includes("401");
+    const isAdminDisabled =
+      msg.includes("Painel administrativo indisponivel") || msg.includes("503");
+
+    if (isWrongPassword) {
+      state.adminPassword = "";
+      window.alert("Senha administrativa incorreta.");
+      console.warn("[Flow] Admin auth rejected", error);
+    } else if (isAdminDisabled) {
+      window.alert(
+        "Painel administrativo indisponivel no servidor (verifique ADMIN_PASSWORD no ambiente de producao)."
+      );
+      console.error("[Flow] Admin API disabled on server", error);
+    } else {
+      window.alert(
+        "Nao foi possivel carregar o painel (erro no servidor ou rede). A senha pode estar certa.\nDetalhe: " +
+          (msg || "Erro desconhecido")
+      );
+      console.error("[Flow] Admin panel load failed (not a password check)", error);
+    }
   }
 }
 
