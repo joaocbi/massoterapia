@@ -25,7 +25,10 @@ function isRetryablePgError(error) {
     code === "08003" ||
     msg.includes("Connection terminated") ||
     msg.includes("timeout") ||
-    msg.includes("the database system is starting up")
+    msg.includes("the database system is starting up") ||
+    msg.includes("Client has encountered a connection error") ||
+    msg.includes("Connection closed") ||
+    msg.includes("not queryable")
   );
 }
 
@@ -54,11 +57,10 @@ function getPool() {
     const isVercel = Boolean(process.env.VERCEL);
     global[GLOBAL_POOL_KEY] = new Pool({
       connectionString,
-      max: isLocal ? 5 : isVercel ? 1 : 10,
-      idleTimeoutMillis: isVercel ? 8000 : 20000,
+      max: isLocal ? 5 : isVercel ? 2 : 10,
+      idleTimeoutMillis: isVercel ? 20000 : 20000,
       connectionTimeoutMillis: isVercel ? 25000 : 15000,
       ssl: isLocal ? false : { rejectUnauthorized: false },
-      allowExitOnIdle: isVercel,
     });
     global[GLOBAL_POOL_KEY].on("error", (error) => {
       console.error("[Flow API PG] Pool error:", error);

@@ -416,8 +416,14 @@ app.post("/api/payments/mercadopago/webhook", async (request, response, next) =>
 
 app.use((error, request, response, next) => {
   console.error("[Flow API] Unexpected error:", error);
+  const hint =
+    error && typeof error.message === "string"
+      ? error.message.slice(0, 280)
+      : "";
   response.status(500).json({
     message: "Ocorreu um erro interno no servidor.",
+    ...(error && error.code ? { code: String(error.code) } : {}),
+    ...(hint ? { hint } : {}),
   });
 });
 

@@ -20,18 +20,24 @@ function isPostgresEnv() {
 }
 
 let impl;
-let loggedDriver;
+let implKind;
 
 function getImpl() {
   normalizeDatabaseUrl();
   const usePg = Boolean(String(process.env.DATABASE_URL || "").trim());
+  const desiredKind = usePg ? "pg" : "sqlite";
+
+  // If env becomes available later (or first tick had no DATABASE_URL), do not keep using SQLite forever.
+  if (impl && implKind !== desiredKind) {
+    console.warn("[Flow API] DB driver mismatch; reloading store:", implKind, "->", desiredKind);
+    impl = null;
+    implKind = null;
+  }
 
   if (!impl) {
     impl = usePg ? require("./database-postgres") : require("./database");
-    if (!loggedDriver) {
-      loggedDriver = true;
-      console.log("[Flow API] DB driver:", usePg ? "postgresql" : "sqlite");
-    }
+    implKind = desiredKind;
+    console.log("[Flow API] DB driver:", implKind);
   }
 
   return impl;

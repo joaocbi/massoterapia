@@ -1013,7 +1013,9 @@ async function apiRequest(endpoint, options = {}) {
 
   if (!response.ok) {
     const statusHint = `${response.status} ${response.statusText || ""}`.trim();
-    const message = data.message || statusHint || "Falha na comunicacao com a API.";
+    const detailParts = [data.message, data.hint, data.code].filter(Boolean);
+    const message =
+      detailParts.join(" — ") || statusHint || "Falha na comunicacao com a API.";
     console.error("[Flow] API error:", endpoint, statusHint, data);
     throw new Error(message);
   }
