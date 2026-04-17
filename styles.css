@@ -685,6 +685,7 @@ select option {
   margin: 0;
   display: grid;
   gap: 8px;
+  align-content: start;
 }
 
 .radio-group-fieldset legend {
@@ -695,8 +696,8 @@ select option {
 
 .radio-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  gap: 10px;
 }
 
 .radio-card {
@@ -717,12 +718,12 @@ select option {
   align-items: center;
   justify-content: center;
   text-align: center;
-  padding: 14px 12px;
+  padding: 10px 10px;
   border: 1px solid rgba(216, 177, 94, 0.18);
   border-radius: 12px;
   background: rgba(255, 255, 255, 0.04);
   color: var(--text);
-  font-size: 0.95rem;
+  font-size: 0.88rem;
   transition: all 0.2s ease;
   user-select: none;
   min-height: 100%;
@@ -743,4 +744,24 @@ select option {
   opacity: 0.5;
   cursor: not-allowed;
   background: transparent;
+}
+
+.time-slots-fieldset .radio-cards-grid {
+  max-height: 176px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.side-panel-hero-image {
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  overflow: hidden;
+}
+
+.side-panel-hero-image img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: cover;
 }

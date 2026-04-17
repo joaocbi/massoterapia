@@ -5,6 +5,13 @@ Este documento separa orientacoes para dois perfis:
 - cliente final que faz agendamento
 - administrador que configura e opera o painel
 
+## Cartilhas e textos comerciais
+
+Para divulgacao e explicacao detalhada ao cliente final, use tambem:
+
+- `CLIENT-HANDBOOK.md` — comodidades do site, beneficios por massagem, agendamento e pagamentos
+- `CLIENT-HANDBOOK-SHORT.md` — versao curta para WhatsApp, bio e 3 tons de escrita
+
 ## Guia do Cliente
 
 ### Como agendar sua sessao

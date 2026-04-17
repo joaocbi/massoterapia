@@ -9,7 +9,7 @@ const DEFAULT_SETTINGS = {
   services: [
     { name: "Massagem Relaxante Flow", duration: "60 min", price: 180 },
     { name: "Massagem Terapeutica Premium", duration: "75 min", price: 240 },
-    { name: "Pedras Quentes e Aromas", duration: "90 min", price: 320 },
+    { name: "Tantrica Flow", duration: "90 min", price: 320 },
     { name: "Drenagem Linfatica", duration: "60 min", price: 210 },
     { name: "Massagem Modeladora", duration: "50 min", price: 190 },
     { name: "Atendimento Personalizado", duration: "Sob consulta", price: 260 },
@@ -442,25 +442,25 @@ async function handleAdminLogin() {
 }
 
 async function saveSettings() {
-  const parsedServices = parseServicesCatalog(servicesCatalogField.value);
-  const parsedTimeSlots = parseTimeSlots(timeSlotsConfigField.value);
-  const parsedPaymentMethods = parsePaymentMethods(paymentMethodsConfigField.value);
-  const parsedAllowedWeekdays = parseAllowedWeekdays(allowedWeekdaysConfigField.value);
-  const parsedBlockedDates = parseBlockedDates(blockedDatesConfigField.value);
-
-  const payload = {
-    businessWhatsapp: sanitizeWhatsappNumber(businessWhatsappField.value),
-    mercadoPagoCheckout: mercadoPagoCheckoutField.value.trim() || DEFAULT_SETTINGS.mercadoPagoCheckout,
-    pixKey: pixKeyField.value.trim(),
-    businessAddress: businessAddressField.value.trim(),
-    services: parsedServices,
-    timeSlots: parsedTimeSlots,
-    paymentMethods: parsedPaymentMethods,
-    allowedWeekdays: parsedAllowedWeekdays,
-    blockedDates: parsedBlockedDates,
-  };
-
   try {
+    const parsedServices = parseServicesCatalog(getFieldValue(servicesCatalogField));
+    const parsedTimeSlots = parseTimeSlots(getFieldValue(timeSlotsConfigField));
+    const parsedPaymentMethods = parsePaymentMethods(getFieldValue(paymentMethodsConfigField));
+    const parsedAllowedWeekdays = parseAllowedWeekdays(getFieldValue(allowedWeekdaysConfigField));
+    const parsedBlockedDates = parseBlockedDates(getFieldValue(blockedDatesConfigField));
+
+    const payload = {
+      businessWhatsapp: sanitizeWhatsappNumber(getFieldValue(businessWhatsappField)),
+      mercadoPagoCheckout: getFieldValue(mercadoPagoCheckoutField).trim() || DEFAULT_SETTINGS.mercadoPagoCheckout,
+      pixKey: getFieldValue(pixKeyField).trim(),
+      businessAddress: getFieldValue(businessAddressField).trim(),
+      services: parsedServices,
+      timeSlots: parsedTimeSlots,
+      paymentMethods: parsedPaymentMethods,
+      allowedWeekdays: parsedAllowedWeekdays,
+      blockedDates: parsedBlockedDates,
+    };
+
     state.settings = await apiRequest("/api/settings", {
       method: "PUT",
       body: payload,
@@ -480,17 +480,18 @@ async function saveSettings() {
 }
 
 function hydrateSettingsFields() {
-  businessWhatsappField.value = state.settings.businessWhatsapp;
-  mercadoPagoCheckoutField.value = state.settings.mercadoPagoCheckout;
-  pixKeyField.value = state.settings.pixKey;
-  businessAddressField.value = state.settings.businessAddress;
-  servicesCatalogField.value = state.settings.services
-    .map((service) => `${service.name}|${service.duration}|${service.price}`)
-    .join("\n");
-  timeSlotsConfigField.value = state.settings.timeSlots.join(",");
-  paymentMethodsConfigField.value = state.settings.paymentMethods.join("\n");
-  allowedWeekdaysConfigField.value = state.settings.allowedWeekdays.join(",");
-  blockedDatesConfigField.value = state.settings.blockedDates.join("\n");
+  setFieldValue(businessWhatsappField, state.settings.businessWhatsapp);
+  setFieldValue(mercadoPagoCheckoutField, state.settings.mercadoPagoCheckout);
+  setFieldValue(pixKeyField, state.settings.pixKey);
+  setFieldValue(businessAddressField, state.settings.businessAddress);
+  setFieldValue(
+    servicesCatalogField,
+    state.settings.services.map((service) => `${service.name}|${service.duration}|${service.price}`).join("\n")
+  );
+  setFieldValue(timeSlotsConfigField, state.settings.timeSlots.join(","));
+  setFieldValue(paymentMethodsConfigField, state.settings.paymentMethods.join("\n"));
+  setFieldValue(allowedWeekdaysConfigField, state.settings.allowedWeekdays.join(","));
+  setFieldValue(blockedDatesConfigField, state.settings.blockedDates.join("\n"));
 }
 
 async function clearCancelledAppointments() {
@@ -963,6 +964,16 @@ function getPaymentStatusLabel(status) {
   }
 
   return "pendente";
+}
+
+function getFieldValue(field) {
+  return field ? String(field.value || "") : "";
+}
+
+function setFieldValue(field, value) {
+  if (field) {
+    field.value = value;
+  }
 }
 
 async function apiRequest(endpoint, options = {}) {

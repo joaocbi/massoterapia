@@ -25,11 +25,13 @@ jobs:
 
       - name: Prepare static files
         run: |
-          mkdir -p dist
+          mkdir -p dist/img
           cp index.html dist/
           cp styles.css dist/
           cp script.js dist/
           cp site-config.js dist/
+          cp img/logo-flow.png dist/img/
+          cp img/flowclass.png dist/img/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

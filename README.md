@@ -1,6 +1,6 @@
-# Luxor Massoterapia
+# Flow Terapias (terapeuta)
 
-Premium massotherapy website with:
+Premium massage therapy website with:
 
 - golden landing page
 - online booking flow
@@ -40,7 +40,7 @@ npm start
 
 - `PORT`: backend port
 - `ADMIN_PASSWORD`: required password used by the admin modal
-- `FRONTEND_ORIGIN`: allowed frontend origin for CORS
+- `FRONTEND_ORIGIN`: allowed frontend origin for CORS (comma-separated list). Production on Vercel also allows `https://*.vercel.app` automatically so the admin save works when the site and API share the same project domain
 - `PUBLIC_SITE_URL`: public backend URL used in Mercado Pago callbacks
 - `MERCADO_PAGO_ACCESS_TOKEN`: Mercado Pago private token
 - `MERCADO_PAGO_PUBLIC_KEY`: optional public key for future frontend use
@@ -99,3 +99,13 @@ To enable real Mercado Pago checkout:
 For day-to-day usage by client and administrator, see:
 
 - `README-OPERACAO.md`
+
+## Client handbook (marketing)
+
+- `CLIENT-HANDBOOK.md` — full client guide: site features, massage benefits, booking and payments
+- `CLIENT-HANDBOOK-SHORT.md` — short copy for WhatsApp, social bio, and tone variants (premium, popular, therapeutic)
+
+## Recent updates
+
+- **CORS (admin save on Vercel)**: browser `PUT /api/settings` could fail when the site origin was `https://<project>.vercel.app` but missing from `FRONTEND_ORIGIN`. The API now allows trusted HTTPS origins on `*.vercel.app` in addition to `FRONTEND_ORIGIN`.
+- **Documentation**: added the handbook files above; day-to-day operation stays in `README-OPERACAO.md`.

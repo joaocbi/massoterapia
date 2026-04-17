@@ -4,3 +4,4 @@ database.sqlite
 database.sqlite-journal
 .vercel
 .env*.local
+tmp-settings-payload.json

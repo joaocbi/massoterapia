@@ -6,14 +6,16 @@
     { "src": "styles.css", "use": "@vercel/static" },
     { "src": "script.js", "use": "@vercel/static" },
     { "src": "site-config.js", "use": "@vercel/static" },
-    { "src": "logo-flow.png", "use": "@vercel/static" }
+    { "src": "img/logo-flow.png", "use": "@vercel/static" },
+    { "src": "img/flowclass.png", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/server.js" },
     { "src": "/styles.css", "dest": "/styles.css" },
     { "src": "/script.js", "dest": "/script.js" },
     { "src": "/site-config.js", "dest": "/site-config.js" },
-    { "src": "/logo-flow.png", "dest": "/logo-flow.png" },
+    { "src": "/img/logo-flow.png", "dest": "/img/logo-flow.png" },
+    { "src": "/img/flowclass.png", "dest": "/img/flowclass.png" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }

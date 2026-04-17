@@ -18,7 +18,7 @@ const allowedOrigins = parseAllowedOrigins(FRONTEND_ORIGIN);
 const DEFAULT_SERVICE_CATALOG = [
   { name: "Massagem Relaxante Flow", duration: "60 min", price: 180 },
   { name: "Massagem Terapeutica Premium", duration: "75 min", price: 240 },
-  { name: "Pedras Quentes e Aromas", duration: "90 min", price: 320 },
+  { name: "Tantrica Flow", duration: "90 min", price: 320 },
   { name: "Drenagem Linfatica", duration: "60 min", price: 210 },
   { name: "Massagem Modeladora", duration: "50 min", price: 190 },
   { name: "Atendimento Personalizado", duration: "Sob consulta", price: 260 },
@@ -47,7 +47,7 @@ const mercadopagoClient = MERCADO_PAGO_ACCESS_TOKEN
 app.use(
   cors({
     origin(origin, callback) {
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (!origin || allowedOrigins.includes(origin) || isTrustedVercelOrigin(origin)) {
         callback(null, true);
         return;
       }
@@ -87,34 +87,51 @@ app.get("/api/settings", async (request, response, next) => {
 app.put("/api/settings", requireAdmin, async (request, response, next) => {
   try {
     const payload = sanitizeSettingsPayload(request.body || {});
+    const supportsAdvancedSettings = await hasAdvancedSettingsColumns();
 
-    await run(
-      `
-        UPDATE settings
-        SET
-          business_whatsapp = ?,
-          mercado_pago_checkout = ?,
-          pix_key = ?,
-          business_address = ?,
-          services_json = ?,
-          time_slots_json = ?,
-          payment_methods_json = ?,
-          allowed_weekdays_json = ?,
-          blocked_dates_json = ?
-        WHERE id = 1
-      `,
-      [
-        payload.businessWhatsapp,
-        payload.mercadoPagoCheckout,
-        payload.pixKey,
-        payload.businessAddress,
-        JSON.stringify(payload.services),
-        JSON.stringify(payload.timeSlots),
-        JSON.stringify(payload.paymentMethods),
-        JSON.stringify(payload.allowedWeekdays),
-        JSON.stringify(payload.blockedDates),
-      ]
-    );
+    if (supportsAdvancedSettings) {
+      await run(
+        `
+          UPDATE settings
+          SET
+            business_whatsapp = ?,
+            mercado_pago_checkout = ?,
+            pix_key = ?,
+            business_address = ?,
+            services_json = ?,
+            time_slots_json = ?,
+            payment_methods_json = ?,
+            allowed_weekdays_json = ?,
+            blocked_dates_json = ?
+          WHERE id = 1
+        `,
+        [
+          payload.businessWhatsapp,
+          payload.mercadoPagoCheckout,
+          payload.pixKey,
+          payload.businessAddress,
+          JSON.stringify(payload.services),
+          JSON.stringify(payload.timeSlots),
+          JSON.stringify(payload.paymentMethods),
+          JSON.stringify(payload.allowedWeekdays),
+          JSON.stringify(payload.blockedDates),
+        ]
+      );
+    } else {
+      console.warn("[Flow API] Advanced settings columns not found. Using legacy settings update.");
+      await run(
+        `
+          UPDATE settings
+          SET
+            business_whatsapp = ?,
+            mercado_pago_checkout = ?,
+            pix_key = ?,
+            business_address = ?
+          WHERE id = 1
+        `,
+        [payload.businessWhatsapp, payload.mercadoPagoCheckout, payload.pixKey, payload.businessAddress]
+      );
+    }
 
     response.json(await loadSettings());
   } catch (error) {
@@ -497,6 +514,10 @@ function parseAllowedOrigins(value) {
     .filter(Boolean);
 }
 
+function isTrustedVercelOrigin(origin) {
+  return /^https:\/\/[a-z0-9-]+\.vercel\.app$/i.test(String(origin || "").trim());
+}
+
 function isAllowedWeekday(dateString, allowedWeekdays) {
   const date = new Date(`${dateString}T00:00:00`);
   return allowedWeekdays.includes(date.getDay());
@@ -566,6 +587,19 @@ function buildServiceMap(services) {
   });
 
   return map;
+}
+
+async function hasAdvancedSettingsColumns() {
+  const columns = await all(`PRAGMA table_info(settings)`);
+  const names = new Set(columns.map((column) => column.name));
+
+  return (
+    names.has("services_json") &&
+    names.has("time_slots_json") &&
+    names.has("payment_methods_json") &&
+    names.has("allowed_weekdays_json") &&
+    names.has("blocked_dates_json")
+  );
 }
 
 function sanitizeStatus(status) {
