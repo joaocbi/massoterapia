@@ -5,6 +5,18 @@ Este documento separa orientacoes para dois perfis:
 - cliente final que faz agendamento
 - administrador que configura e opera o painel
 
+## Persistencia no Vercel (importante)
+
+No deploy serverless da Vercel, o SQLite fica em `/tmp` e **nao e duravel**: outro servidor ou um novo arranque pode voltar aos valores padrao mesmo apos "salvar com sucesso".
+
+Para os precos e configuracoes do admin **permanecerem** apos atualizar a pagina:
+
+1. Crie uma base PostgreSQL (ex.: Neon, Supabase, ou Vercel Postgres).
+2. No projeto Vercel, adicione a connection string: normalmente `DATABASE_URL`, ou use a que a integracao criar (por exemplo `POSTGRES_URL` — o servidor aceita e usa automaticamente).
+3. Volte a fazer deploy. O backend passa a gravar configuracoes e agendamentos no Postgres.
+
+Pode confirmar em `GET /api/health`: o campo `persistence` deve mostrar `postgres` quando estiver correto.
+
 ## Cartilhas e textos comerciais
 
 Para divulgacao e explicacao detalhada ao cliente final, use tambem:

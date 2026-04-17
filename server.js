@@ -5,7 +5,21 @@ const path = require("path");
 const express = require("express");
 const cors = require("cors");
 const { MercadoPagoConfig, Preference, Payment } = require("mercadopago");
-const { all, get, initializeDatabase, run } = require("./database");
+
+// Vercel Marketplace / Neon often exposes POSTGRES_URL instead of DATABASE_URL
+if (!String(process.env.DATABASE_URL || "").trim()) {
+  const fallbackUrl = String(
+    process.env.POSTGRES_URL || process.env.POSTGRES_PRISMA_URL || ""
+  ).trim();
+  if (fallbackUrl) {
+    process.env.DATABASE_URL = fallbackUrl;
+  }
+}
+
+const usePostgres = Boolean(String(process.env.DATABASE_URL || "").trim());
+const { all, get, initializeDatabase, run } = usePostgres
+  ? require("./database-postgres")
+  : require("./database");
 
 const PORT = Number(process.env.PORT || 3000);
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
@@ -69,7 +83,8 @@ app.use(express.static(__dirname));
 app.get("/api/health", async (request, response) => {
   response.json({
     ok: true,
-    database: path.join(__dirname, "database.sqlite"),
+    database: usePostgres ? "postgresql" : path.join(__dirname, "database.sqlite"),
+    persistence: usePostgres ? "postgres" : process.env.VERCEL ? "sqlite-tmp-ephemeral" : "sqlite-file",
     adminConfigured: Boolean(ADMIN_PASSWORD),
     mercadoPagoConfigured: Boolean(MERCADO_PAGO_ACCESS_TOKEN),
   });
@@ -590,6 +605,10 @@ function buildServiceMap(services) {
 }
 
 async function hasAdvancedSettingsColumns() {
+  if (usePostgres) {
+    return true;
+  }
+
   const columns = await all(`PRAGMA table_info(settings)`);
   const names = new Set(columns.map((column) => column.name));
 

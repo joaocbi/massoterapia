@@ -13,6 +13,12 @@ let initPromise;
 async function initializeDatabase() {
   await ensureReady();
 
+  if (process.env.VERCEL) {
+    console.warn(
+      "[Flow API] SQLite on Vercel uses /tmp (ephemeral). Data may reset between instances. Set DATABASE_URL to use PostgreSQL for durable settings and appointments."
+    );
+  }
+
   await run(`
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
