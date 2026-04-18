@@ -15,6 +15,10 @@ const MERCADO_PAGO_ACCESS_TOKEN = normalizeMercadoPagoAccessToken(
   process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
 );
 const PREPAYMENT_METHODS = new Set(["Pix", "Cartao de Credito", "Cartao de Debito"]);
+
+function isPixPaymentMethod(paymentMethod) {
+  return /^pix$/i.test(String(paymentMethod || "").trim());
+}
 const allowedOrigins = parseAllowedOrigins(FRONTEND_ORIGIN);
 
 const DEFAULT_SERVICE_CATALOG = [
@@ -267,7 +271,7 @@ app.post("/api/appointments", async (request, response, next) => {
     let paymentUrl = "";
     let mercadoPagoPreferenceId = "";
 
-    if (isPrepaymentMethod(payload.paymentMethod) && payload.paymentMethod !== "Pix") {
+    if (isPrepaymentMethod(payload.paymentMethod) && !isPixPaymentMethod(payload.paymentMethod)) {
       const mercadoPagoCheckout = await createMercadoPagoPreference({
         appointmentId,
         payload,
@@ -277,7 +281,7 @@ app.post("/api/appointments", async (request, response, next) => {
 
       paymentUrl = mercadoPagoCheckout.paymentUrl;
       mercadoPagoPreferenceId = mercadoPagoCheckout.preferenceId;
-    } else if (payload.paymentMethod === "Pix") {
+    } else if (isPixPaymentMethod(payload.paymentMethod)) {
       console.log(
         "[Flow API] Appointment uses Pix without Mercado Pago preference (manual Pix key / no checkout API)."
       );
@@ -320,23 +324,29 @@ app.post("/api/appointments", async (request, response, next) => {
         payload.customerNotes,
         "confirmed",
         "pending",
-        serviceInfo.price,
+        safeAppointmentAmount(serviceInfo.price),
         serviceInfo.duration,
         mercadoPagoPreferenceId,
         "",
-        payload.paymentMethod === "Pix" ? paymentUrl || "" : paymentUrl || settings.mercadoPagoCheckout,
+        isPixPaymentMethod(payload.paymentMethod) ? paymentUrl || "" : paymentUrl || settings.mercadoPagoCheckout,
         createdAt,
       ]
     );
 
     const appointment = await get(`SELECT * FROM appointments WHERE id = ?`, [appointmentId]);
+    if (!appointment) {
+      console.error("[Flow API] INSERT appointments succeeded but SELECT returned no row:", appointmentId);
+      response.status(500).json({ message: "Nao foi possivel confirmar o agendamento. Tente novamente." });
+      return;
+    }
+
     response.status(201).json({
       appointment: mapAppointmentRow(appointment),
-      checkoutUrl:
-        payload.paymentMethod === "Pix" ? "" : paymentUrl || settings.mercadoPagoCheckout,
+      checkoutUrl: isPixPaymentMethod(payload.paymentMethod) ? "" : paymentUrl || settings.mercadoPagoCheckout,
       mercadoPagoConfigured: Boolean(MERCADO_PAGO_ACCESS_TOKEN),
     });
   } catch (error) {
+    console.error("[Flow API] POST /api/appointments failed:", error && error.message, error && error.code);
     next(error);
   }
 });
@@ -728,7 +738,16 @@ function mapMercadoPagoStatus(status) {
 }
 
 function isPrepaymentMethod(paymentMethod) {
+  if (isPixPaymentMethod(paymentMethod)) {
+    return true;
+  }
+
   return PREPAYMENT_METHODS.has(paymentMethod);
+}
+
+function safeAppointmentAmount(value) {
+  const amount = Number(value);
+  return Number.isFinite(amount) && amount >= 0 ? amount : 0;
 }
 
 function buildMercadoPagoPaymentMethods(paymentMethod) {

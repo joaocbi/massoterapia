@@ -59,6 +59,8 @@ async function initializeDatabase() {
     )
   `);
 
+  await ensureAppointmentsColumns();
+
   await run(`
     INSERT OR IGNORE INTO settings (
       id,
@@ -88,6 +90,27 @@ async function addColumnIfMissing(existing, columnName, definition) {
   }
 
   await run(`ALTER TABLE settings ADD COLUMN ${columnName} ${definition}`);
+}
+
+async function ensureAppointmentsColumns() {
+  const columns = await all(`PRAGMA table_info(appointments)`);
+  const existing = new Set(columns.map((column) => column.name));
+
+  await addAppointmentColumnIfMissing(existing, "customer_email", "TEXT DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "service_region", "TEXT DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "customer_notes", "TEXT DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "mercado_pago_preference_id", "TEXT DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "mercado_pago_payment_id", "TEXT DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "payment_url", "TEXT DEFAULT ''");
+}
+
+async function addAppointmentColumnIfMissing(existing, columnName, definition) {
+  if (existing.has(columnName)) {
+    return;
+  }
+
+  await run(`ALTER TABLE appointments ADD COLUMN ${columnName} ${definition}`);
+  console.log("[Flow API] SQLite appointments: added missing column", columnName);
 }
 
 async function run(sql, params = []) {

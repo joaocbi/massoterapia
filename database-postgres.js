@@ -118,6 +118,8 @@ async function initializeDatabase() {
       )
     `);
 
+    await ensurePostgresAppointmentsColumns(pool);
+
     await pool.query(`
       INSERT INTO settings (id) VALUES (1)
       ON CONFLICT (id) DO NOTHING
@@ -137,6 +139,49 @@ async function initializeDatabase() {
   }
 
   return initPromise;
+}
+
+/**
+ * Older deployments may have an appointments table missing columns added later; INSERT would then fail with 500.
+ * Uses information_schema so it works on PostgreSQL versions without ADD COLUMN IF NOT EXISTS.
+ */
+async function ensurePostgresAppointmentsColumns(pool) {
+  const { rows } = await pool.query(
+    `
+      SELECT column_name
+      FROM information_schema.columns
+      WHERE table_schema = 'public' AND table_name = 'appointments'
+    `
+  );
+  const existing = new Set(rows.map((row) => String(row.column_name).toLowerCase()));
+  const columns = [
+    ["customer_email", "TEXT DEFAULT ''"],
+    ["service_region", "TEXT DEFAULT ''"],
+    ["customer_notes", "TEXT DEFAULT ''"],
+    ["status", "TEXT NOT NULL DEFAULT 'confirmed'"],
+    ["payment_status", "TEXT NOT NULL DEFAULT 'pending'"],
+    ["amount", "DOUBLE PRECISION NOT NULL DEFAULT 0"],
+    ["duration", "TEXT NOT NULL DEFAULT 'Sob consulta'"],
+    ["mercado_pago_preference_id", "TEXT DEFAULT ''"],
+    ["mercado_pago_payment_id", "TEXT DEFAULT ''"],
+    ["payment_url", "TEXT DEFAULT ''"],
+    ["created_at", "TEXT NOT NULL DEFAULT ''"],
+  ];
+
+  for (const [name, definition] of columns) {
+    if (existing.has(name)) {
+      continue;
+    }
+
+    const sql = `ALTER TABLE appointments ADD COLUMN ${name} ${definition}`;
+    try {
+      await pool.query(sql);
+      console.log("[Flow API PG] appointments: added missing column", name);
+    } catch (error) {
+      console.error("[Flow API PG] appointments schema migration failed:", name, error && error.message);
+      throw error;
+    }
+  }
 }
 
 async function run(sql, params = []) {

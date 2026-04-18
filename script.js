@@ -4,6 +4,10 @@ const BRAND_NAME = APP_CONFIG.brandName || "Flow Terapias";
 const FALLBACK_API_BASE = "https://flowterapia.vercel.app";
 const ADMIN_ALERT_WHATSAPP = "5542991628586";
 const PREPAYMENT_METHODS = new Set(["Pix", "Cartao de Credito", "Cartao de Debito"]);
+
+function isPixPaymentMethod(paymentMethod) {
+  return /^pix$/i.test(String(paymentMethod || "").trim());
+}
 const DEFAULT_SETTINGS = {
   businessWhatsapp: "5511999999999",
   mercadoPagoCheckout: "https://www.mercadopago.com.br/",
@@ -216,7 +220,7 @@ function showConfirmation(appointment, checkoutUrl) {
       " Pagamento antecipado obrigatorio. Envie o comprovante para confirmar definitivamente a reserva.";
   }
 
-  if (appointment.paymentMethod === "Pix" && state.settings.pixKey) {
+  if (isPixPaymentMethod(appointment.paymentMethod) && state.settings.pixKey) {
     confirmationText.textContent += ` Chave Pix para pagamento: ${state.settings.pixKey}.`;
   }
 
@@ -231,7 +235,7 @@ function showConfirmation(appointment, checkoutUrl) {
   if (
     isPrepaymentMethod(appointment.paymentMethod) &&
     checkoutUrl &&
-    appointment.paymentMethod !== "Pix"
+    !isPixPaymentMethod(appointment.paymentMethod)
   ) {
     mercadoPagoLink.classList.remove("hidden");
     mercadoPagoLink.href = checkoutUrl;
@@ -712,7 +716,7 @@ function isDateSelectable(dateString) {
 function buildWhatsappMessage(appointment) {
   const addressText = appointment.serviceRegion || state.settings.businessAddress;
   const pixText =
-    appointment.paymentMethod === "Pix" && state.settings.pixKey
+    isPixPaymentMethod(appointment.paymentMethod) && state.settings.pixKey
       ? ` Chave Pix: ${state.settings.pixKey}.`
       : "";
 
@@ -752,6 +756,10 @@ function notifyAdminPrepayment(appointment) {
 }
 
 function isPrepaymentMethod(paymentMethod) {
+  if (isPixPaymentMethod(paymentMethod)) {
+    return true;
+  }
+
   return PREPAYMENT_METHODS.has(paymentMethod);
 }
 
