@@ -807,9 +807,14 @@ function renderMassageOptions() {
 
 function renderPaymentMethodOptions() {
   const previousValue = getRadioValue("paymentMethod");
-  paymentMethodField.innerHTML = '';
+  paymentMethodField.innerHTML = "";
 
-  state.settings.paymentMethods.forEach((method) => {
+  const methods =
+    Array.isArray(state.settings.paymentMethods) && state.settings.paymentMethods.length
+      ? state.settings.paymentMethods
+      : DEFAULT_SETTINGS.paymentMethods;
+
+  methods.forEach((method) => {
     const label = document.createElement("label");
     label.className = "radio-card";
 
@@ -820,9 +825,15 @@ function renderPaymentMethodOptions() {
     paymentMethodField.appendChild(label);
   });
 
-  if (previousValue && state.settings.paymentMethods.includes(previousValue)) {
+  if (previousValue && methods.includes(previousValue)) {
     const radio = paymentMethodField.querySelector(`input[value="${previousValue}"]`);
-    if (radio) radio.checked = true;
+    if (radio) {
+      radio.checked = true;
+    }
+  }
+
+  if (!methods.length) {
+    console.warn("[Flow] No payment methods to render; check admin settings.");
   }
 }
 
@@ -941,7 +952,7 @@ function updateBookingSummary() {
   const selectedPayment = getRadioValue("paymentMethod");
   const selectedRegion = serviceRegionField.value.trim();
 
-  summaryService.textContent = selectedService || "Selecione uma massagem";
+  summaryService.textContent = selectedService || "Confira seu agendamento";
   summaryDuration.textContent = selectedService ? getServiceDuration(selectedService) : "-";
   summaryPrice.textContent = selectedService ? formatCurrency(getServiceAmount(selectedService)) : "-";
   summaryPayment.textContent = selectedPayment || "-";

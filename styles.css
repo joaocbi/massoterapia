@@ -406,6 +406,11 @@ button {
   border-radius: 28px;
 }
 
+/* Avoid clipping long booking forms; keep rounded corners on inner panels */
+.booking-form.luxury-frame {
+  overflow: visible;
+}
+
 .booking-side-panel {
   display: grid;
   gap: 16px;
@@ -700,6 +705,8 @@ select option {
   display: grid;
   gap: 8px;
   align-content: start;
+  min-width: 0;
+  width: 100%;
 }
 
 .radio-group-fieldset legend {
