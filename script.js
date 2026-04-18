@@ -228,7 +228,11 @@ function showConfirmation(appointment, checkoutUrl) {
   confirmationCard.classList.remove("hidden");
   confirmationCard.scrollIntoView({ behavior: "smooth", block: "center" });
 
-  if (isPrepaymentMethod(appointment.paymentMethod) && checkoutUrl) {
+  if (
+    isPrepaymentMethod(appointment.paymentMethod) &&
+    checkoutUrl &&
+    appointment.paymentMethod !== "Pix"
+  ) {
     mercadoPagoLink.classList.remove("hidden");
     mercadoPagoLink.href = checkoutUrl;
     mercadoPagoLink.textContent = "Pagar agora (Mercado Pago)";

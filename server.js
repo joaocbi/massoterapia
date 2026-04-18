@@ -11,7 +11,9 @@ const PORT = Number(process.env.PORT || 3000);
 const ADMIN_PASSWORD = String(process.env.ADMIN_PASSWORD || "").trim();
 const FRONTEND_ORIGIN = process.env.FRONTEND_ORIGIN || "http://localhost:3000";
 const PUBLIC_SITE_URL = process.env.PUBLIC_SITE_URL || `http://localhost:${PORT}`;
-const MERCADO_PAGO_ACCESS_TOKEN = process.env.MERCADO_PAGO_ACCESS_TOKEN || "";
+const MERCADO_PAGO_ACCESS_TOKEN = normalizeMercadoPagoAccessToken(
+  process.env.MERCADO_PAGO_ACCESS_TOKEN || ""
+);
 const PREPAYMENT_METHODS = new Set(["Pix", "Cartao de Credito", "Cartao de Debito"]);
 const allowedOrigins = parseAllowedOrigins(FRONTEND_ORIGIN);
 
@@ -265,7 +267,7 @@ app.post("/api/appointments", async (request, response, next) => {
     let paymentUrl = "";
     let mercadoPagoPreferenceId = "";
 
-    if (isPrepaymentMethod(payload.paymentMethod)) {
+    if (isPrepaymentMethod(payload.paymentMethod) && payload.paymentMethod !== "Pix") {
       const mercadoPagoCheckout = await createMercadoPagoPreference({
         appointmentId,
         payload,
@@ -275,6 +277,10 @@ app.post("/api/appointments", async (request, response, next) => {
 
       paymentUrl = mercadoPagoCheckout.paymentUrl;
       mercadoPagoPreferenceId = mercadoPagoCheckout.preferenceId;
+    } else if (payload.paymentMethod === "Pix") {
+      console.log(
+        "[Flow API] Appointment uses Pix without Mercado Pago preference (manual Pix key / no checkout API)."
+      );
     }
 
     await run(
@@ -318,7 +324,7 @@ app.post("/api/appointments", async (request, response, next) => {
         serviceInfo.duration,
         mercadoPagoPreferenceId,
         "",
-        paymentUrl || settings.mercadoPagoCheckout,
+        payload.paymentMethod === "Pix" ? paymentUrl || "" : paymentUrl || settings.mercadoPagoCheckout,
         createdAt,
       ]
     );
@@ -326,7 +332,8 @@ app.post("/api/appointments", async (request, response, next) => {
     const appointment = await get(`SELECT * FROM appointments WHERE id = ?`, [appointmentId]);
     response.status(201).json({
       appointment: mapAppointmentRow(appointment),
-      checkoutUrl: paymentUrl || settings.mercadoPagoCheckout,
+      checkoutUrl:
+        payload.paymentMethod === "Pix" ? "" : paymentUrl || settings.mercadoPagoCheckout,
       mercadoPagoConfigured: Boolean(MERCADO_PAGO_ACCESS_TOKEN),
     });
   } catch (error) {
@@ -416,10 +423,7 @@ app.post("/api/payments/mercadopago/webhook", async (request, response, next) =>
 
 app.use((error, request, response, next) => {
   console.error("[Flow API] Unexpected error:", error);
-  const hint =
-    error && typeof error.message === "string"
-      ? error.message.slice(0, 280)
-      : "";
+  const hint = sanitizeClientErrorHint(error && error.message);
   response.status(500).json({
     message: "Ocorreu um erro interno no servidor.",
     ...(error && error.code ? { code: String(error.code) } : {}),
@@ -749,6 +753,38 @@ function buildMercadoPagoPaymentMethods(paymentMethod) {
   }
 
   return undefined;
+}
+
+/**
+ * Mercado Pago tokens must be a single line; pasted secrets often include \r\n and break the Authorization header.
+ */
+function normalizeMercadoPagoAccessToken(raw) {
+  if (raw == null) {
+    return "";
+  }
+  let token = String(raw)
+    .replace(/^\uFEFF/, "")
+    .trim()
+    .replace(/^Bearer\s+/i, "");
+  const hadBreaks = /[\r\n\t]/.test(token);
+  token = token.replace(/[\r\n\t]/g, "").trim();
+  if (hadBreaks && token.length > 0) {
+    console.warn(
+      "[Flow API] MERCADO_PAGO_ACCESS_TOKEN had line breaks or tabs; removed. Re-save the secret in Vercel / .env as one line if issues persist."
+    );
+  }
+  return token;
+}
+
+/** Never send API secrets to the browser in error hints. */
+function sanitizeClientErrorHint(message) {
+  if (!message || typeof message !== "string") {
+    return "";
+  }
+  let hint = message.slice(0, 280);
+  hint = hint.replace(/Bearer\s+APP_USR-[A-Za-z0-9\-_]+/gi, "Bearer [redacted]");
+  hint = hint.replace(/APP_USR-[A-Za-z0-9\-_]+/g, "[redacted]");
+  return hint.trim();
 }
 
 module.exports = app;
