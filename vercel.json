@@ -8,6 +8,9 @@
     { "src": "site-config.js", "use": "@vercel/static" },
     { "src": "img/logo-flow.png", "use": "@vercel/static" },
     { "src": "img/flowclass.png", "use": "@vercel/static" },
+    { "src": "img/service-relaxante.png", "use": "@vercel/static" },
+    { "src": "img/service-terapeutica.png", "use": "@vercel/static" },
+    { "src": "img/service-ritual.png", "use": "@vercel/static" },
     { "src": "fisiosaude/index.html", "use": "@vercel/static" },
     { "src": "fisiosaude/brand.css", "use": "@vercel/static" },
     { "src": "fisiosaude/site-config.js", "use": "@vercel/static" },
@@ -26,6 +29,9 @@
     { "src": "/site-config.js", "dest": "/site-config.js" },
     { "src": "/img/logo-flow.png", "dest": "/img/logo-flow.png" },
     { "src": "/img/flowclass.png", "dest": "/img/flowclass.png" },
+    { "src": "/img/service-relaxante.png", "dest": "/img/service-relaxante.png" },
+    { "src": "/img/service-terapeutica.png", "dest": "/img/service-terapeutica.png" },
+    { "src": "/img/service-ritual.png", "dest": "/img/service-ritual.png" },
     { "src": "/(.*)", "dest": "/index.html" }
   ]
 }
