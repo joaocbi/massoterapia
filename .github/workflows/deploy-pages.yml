@@ -32,6 +32,12 @@ jobs:
           cp site-config.js dist/
           cp img/logo-flow.png dist/img/
           cp img/flowclass.png dist/img/
+          mkdir -p dist/fisiosaude/img
+          cp fisiosaude/index.html dist/fisiosaude/
+          cp fisiosaude/brand.css dist/fisiosaude/
+          cp fisiosaude/site-config.js dist/fisiosaude/
+          cp fisiosaude/img/logo-fisiosaude.png dist/fisiosaude/img/
+          cp fisiosaude/img/fisio-panel-hero.png dist/fisiosaude/img/
 
       - name: Setup Pages
         uses: actions/configure-pages@v5

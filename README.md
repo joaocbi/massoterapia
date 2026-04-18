@@ -102,6 +102,12 @@ For day-to-day usage by client and administrator, see:
 
 - `README-OPERACAO.md`
 
+## FisioSaúde template (same codebase)
+
+- Static clone at **`/fisiosaude`** (e.g. `https://flowterapia.vercel.app/fisiosaude`): blue theme, FisioSaúde branding, same booking/admin JS as the main site.
+- Configure **service names in Admin** to match the marketing cards (see placeholder in the admin form) or edit `fisiosaude/index.html` `data-service` attributes to match your catalog.
+- For a real separate clinic, use a **separate** Vercel project + `apiBaseUrl` in `fisiosaude/site-config.js`.
+
 ## Client handbook (marketing)
 
 - `CLIENT-HANDBOOK.md` — full client guide: site features, massage benefits, booking and payments

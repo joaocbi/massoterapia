@@ -1,4 +1,5 @@
 const APP_CONFIG = window.LUXOR_CONFIG || {};
+const BRAND_NAME = APP_CONFIG.brandName || "Flow Terapias";
 /** Used when the static site is on GitHub Pages and apiBaseUrl is not set in site-config.js */
 const FALLBACK_API_BASE = "https://flowterapia.vercel.app";
 const ADMIN_ALERT_WHATSAPP = "5542991628586";
@@ -540,7 +541,7 @@ async function clearCancelledAppointments() {
 
 function refreshWhatsappLinks() {
   const genericMessage =
-    "Ola, gostaria de saber mais sobre os atendimentos premium da Flow Terapias.";
+    `Ola, gostaria de saber mais sobre os atendimentos da ${BRAND_NAME}.`;
   const url = buildWhatsappUrl(state.settings.businessWhatsapp, genericMessage);
 
   document.getElementById("heroWhatsappButton").href = url;
@@ -712,7 +713,7 @@ function buildWhatsappMessage(appointment) {
       : "";
 
   return (
-    `Ola ${appointment.customerName}, seu agendamento na Flow Terapias foi confirmado para ` +
+    `Ola ${appointment.customerName}, seu agendamento na ${BRAND_NAME} foi confirmado para ` +
     `${formatDate(appointment.appointmentDate)} as ${appointment.appointmentTime}. ` +
     `Servico: ${appointment.massageType}. Duracao: ${appointment.duration || getServiceDuration(appointment.massageType)}. ` +
     `Valor: ${formatCurrency(appointment.amount || getServiceAmount(appointment.massageType))}. ` +
@@ -732,7 +733,7 @@ function notifyAdminPrepayment(appointment) {
   window.alert(alertMessage);
 
   const adminMessage =
-    `Novo pedido de pagamento antecipado - Flow Terapias.\n` +
+    `Novo pedido de pagamento antecipado - ${BRAND_NAME}.\n` +
     `Cliente: ${appointment.customerName}\n` +
     `WhatsApp: ${appointment.customerPhone}\n` +
     `Servico: ${appointment.massageType}\n` +

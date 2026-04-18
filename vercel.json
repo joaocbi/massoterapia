@@ -7,10 +7,20 @@
     { "src": "script.js", "use": "@vercel/static" },
     { "src": "site-config.js", "use": "@vercel/static" },
     { "src": "img/logo-flow.png", "use": "@vercel/static" },
-    { "src": "img/flowclass.png", "use": "@vercel/static" }
+    { "src": "img/flowclass.png", "use": "@vercel/static" },
+    { "src": "fisiosaude/index.html", "use": "@vercel/static" },
+    { "src": "fisiosaude/brand.css", "use": "@vercel/static" },
+    { "src": "fisiosaude/site-config.js", "use": "@vercel/static" },
+    { "src": "fisiosaude/img/logo-fisiosaude.png", "use": "@vercel/static" },
+    { "src": "fisiosaude/img/fisio-panel-hero.png", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/server.js" },
+    { "src": "/fisiosaude/brand.css", "dest": "/fisiosaude/brand.css" },
+    { "src": "/fisiosaude/site-config.js", "dest": "/fisiosaude/site-config.js" },
+    { "src": "/fisiosaude/img/(.*)", "dest": "/fisiosaude/img/$1" },
+    { "src": "/fisiosaude/", "dest": "/fisiosaude/index.html" },
+    { "src": "/fisiosaude", "dest": "/fisiosaude/index.html" },
     { "src": "/styles.css", "dest": "/styles.css" },
     { "src": "/script.js", "dest": "/script.js" },
     { "src": "/site-config.js", "dest": "/site-config.js" },
