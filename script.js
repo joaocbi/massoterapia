@@ -93,6 +93,9 @@ async function init() {
   await loadPublicData();
   hydrateSettingsFields();
   updateBookingSummary();
+  if (shouldOpenAdminFromUrl()) {
+    openAdminModal();
+  }
 }
 
 function bindEvents() {
@@ -123,21 +126,61 @@ function bindEvents() {
     });
   });
 
-  document.getElementById("openAdminModal").addEventListener("click", openAdminModal);
-  document.getElementById("closeAdminModal").addEventListener("click", closeAdminModal);
-  document.getElementById("adminLoginButton").addEventListener("click", handleAdminLogin);
-  document.getElementById("saveSettingsButton").addEventListener("click", saveSettings);
-  document.getElementById("clearCompletedButton").addEventListener("click", clearCancelledAppointments);
-  document.getElementById("exportAppointmentsButton").addEventListener("click", exportAppointments);
-  document.getElementById("exportServedClientsButton").addEventListener("click", exportServedClients);
-  appointmentSearchField.addEventListener("input", handleFiltersChange);
-  appointmentStatusFilterField.addEventListener("change", handleFiltersChange);
-  paymentStatusFilterField.addEventListener("change", handleFiltersChange);
-  adminModal.addEventListener("click", (event) => {
-    if (event.target === adminModal) {
-      closeAdminModal();
-    }
-  });
+  const openAdminButton = document.getElementById("openAdminModal");
+  const closeAdminButton = document.getElementById("closeAdminModal");
+  const adminLoginButton = document.getElementById("adminLoginButton");
+  const saveSettingsButton = document.getElementById("saveSettingsButton");
+  const clearCompletedButton = document.getElementById("clearCompletedButton");
+  const exportAppointmentsButton = document.getElementById("exportAppointmentsButton");
+  const exportServedClientsButton = document.getElementById("exportServedClientsButton");
+
+  if (openAdminButton) {
+    openAdminButton.addEventListener("click", openAdminModal);
+  }
+  if (closeAdminButton) {
+    closeAdminButton.addEventListener("click", closeAdminModal);
+  }
+  if (adminLoginButton) {
+    adminLoginButton.addEventListener("click", handleAdminLogin);
+  }
+  if (saveSettingsButton) {
+    saveSettingsButton.addEventListener("click", saveSettings);
+  }
+  if (clearCompletedButton) {
+    clearCompletedButton.addEventListener("click", clearCancelledAppointments);
+  }
+  if (exportAppointmentsButton) {
+    exportAppointmentsButton.addEventListener("click", exportAppointments);
+  }
+  if (exportServedClientsButton) {
+    exportServedClientsButton.addEventListener("click", exportServedClients);
+  }
+  if (appointmentSearchField) {
+    appointmentSearchField.addEventListener("input", handleFiltersChange);
+  }
+  if (appointmentStatusFilterField) {
+    appointmentStatusFilterField.addEventListener("change", handleFiltersChange);
+  }
+  if (paymentStatusFilterField) {
+    paymentStatusFilterField.addEventListener("change", handleFiltersChange);
+  }
+  if (adminModal) {
+    adminModal.addEventListener("click", (event) => {
+      if (event.target === adminModal) {
+        closeAdminModal();
+      }
+    });
+  }
+}
+
+function shouldOpenAdminFromUrl() {
+  const query = new URLSearchParams(window.location.search || "");
+  if (query.get("admin") === "1") {
+    return true;
+  }
+
+  const pathname = String(window.location.pathname || "").replace(/\/+$/, "");
+  return pathname === "/admin" || pathname === "/fisiosaude/admin";
 }
 
 function getRadioValue(name) {
