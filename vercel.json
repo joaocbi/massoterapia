@@ -17,7 +17,11 @@
     { "src": "fisiosaude/brand.css", "use": "@vercel/static" },
     { "src": "fisiosaude/site-config.js", "use": "@vercel/static" },
     { "src": "fisiosaude/img/logo-fisiosaude.png", "use": "@vercel/static" },
-    { "src": "fisiosaude/img/fisio-panel-hero.png", "use": "@vercel/static" }
+    { "src": "fisiosaude/img/fisio-panel-hero.png", "use": "@vercel/static" },
+    { "src": "fisiosaude/img/ahmet.jpg", "use": "@vercel/static" },
+    { "src": "fisiosaude/img/fisio1.jpg", "use": "@vercel/static" },
+    { "src": "fisiosaude/img/fisio2.jpg", "use": "@vercel/static" },
+    { "src": "fisiosaude/img/fisio3.jpg", "use": "@vercel/static" }
   ],
   "routes": [
     { "src": "/api/(.*)", "dest": "/server.js" },
