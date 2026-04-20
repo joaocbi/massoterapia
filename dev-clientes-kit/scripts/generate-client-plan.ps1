@@ -7,7 +7,7 @@ param(
 
   [string]$Domain = "",
 
-  [string]$OutputDir = ".\ops\client-plans"
+  [string]$OutputDir = ".\dev-clientes-kit\client-plans"
 )
 
 Set-StrictMode -Version Latest
@@ -38,7 +38,7 @@ $domainValue = if ([string]::IsNullOrWhiteSpace($Domain)) { "SEU-DOMINIO.com.br"
 $adminPath = if ($SiteType -eq "fisio") { "/fisiosaude/admin" } else { "/admin" }
 $publicPath = if ($SiteType -eq "fisio") { "/fisiosaude" } else { "/" }
 
-$root = (Get-Location).Path
+$root = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $outputAbs = Join-Path $root $OutputDir
 New-Item -ItemType Directory -Path $outputAbs -Force | Out-Null
 
@@ -65,7 +65,7 @@ $content = @"
 - [ ] Rodar bootstrap:
   - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\bootstrap-client.ps1 -ClientSlug $clientSlug -SiteType $SiteType -DestinationRoot .\clientes`
 - [ ] Ajustar branding (logo, nome e imagens)
-- [ ] Configurar `.env.local` com base em `ops/env.client.template`
+- [ ] Configurar `.env.local` com base em `dev-clientes-kit/templates/env.client.template`
 - [ ] Criar projeto na Vercel com nome `$vercelProject`
 - [ ] Configurar variaveis de ambiente na Vercel
 - [ ] Configurar banco Postgres exclusivo (`$dbName`)

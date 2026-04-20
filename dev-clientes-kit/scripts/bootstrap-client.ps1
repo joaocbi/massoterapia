@@ -17,7 +17,7 @@ function Write-Step {
   Write-Host "==> $Message" -ForegroundColor Cyan
 }
 
-$projectRoot = Split-Path -Parent $PSScriptRoot
+$projectRoot = Split-Path -Parent (Split-Path -Parent $PSScriptRoot)
 $destinationRootAbs = Resolve-Path -Path $DestinationRoot -ErrorAction SilentlyContinue
 if (-not $destinationRootAbs) {
   $destinationRootAbs = Join-Path $projectRoot $DestinationRoot
@@ -61,7 +61,7 @@ Get-ChildItem -Path $projectRoot -Force | ForEach-Object {
 }
 
 Write-Step "Criando env local do cliente"
-$envTemplate = Join-Path $projectRoot "ops\\env.client.template"
+$envTemplate = Join-Path $projectRoot "dev-clientes-kit\\templates\\env.client.template"
 $envTarget = Join-Path $targetPath ".env.local"
 Copy-Item -Path $envTemplate -Destination $envTarget -Force
 
