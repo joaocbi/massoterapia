@@ -144,7 +144,10 @@ button {
   border: 1px solid var(--border);
   border-radius: 999px;
   padding: 12px 18px;
-  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease;
 }
 
 .ghost-button,
@@ -170,12 +173,18 @@ button {
   border-color: rgba(241, 212, 149, 0.48);
 }
 
-.hero-section,
-.booking-layout {
+.hero-section {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 24px;
   align-items: center;
+}
+
+.booking-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 24px;
+  align-items: stretch;
 }
 
 .hero-section {
@@ -323,6 +332,8 @@ button {
 .service-card {
   border-radius: 24px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .info-card,
@@ -352,10 +363,16 @@ button {
 }
 
 .service-card-content {
-  display: grid;
+  display: flex;
+  flex-direction: column;
+  flex: 1;
   gap: 14px;
   padding: 20px;
   cursor: pointer;
+}
+
+.service-card-content p {
+  flex-grow: 1;
 }
 
 .service-card-content:focus-visible {
@@ -412,8 +429,10 @@ button {
 }
 
 .booking-side-panel {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: 16px;
+  height: 100%;
 }
 
 .form-grid {
@@ -717,7 +736,7 @@ select option {
 
 .radio-cards-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: 10px;
 }
 
@@ -774,7 +793,8 @@ select option {
 }
 
 .side-panel-hero-image {
-  margin-bottom: 12px;
+  flex: 1;
+  min-height: 0;
   border: 1px solid var(--border);
   border-radius: 16px;
   overflow: hidden;
@@ -782,7 +802,7 @@ select option {
 
 .side-panel-hero-image img {
   width: 100%;
-  height: auto;
+  height: 100%;
   display: block;
   object-fit: cover;
 }
