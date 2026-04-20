@@ -1,459 +1,737 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>FisioSaúde | Fisioterapia e reabilitacao</title>
+    <meta
+      name="description"
+      content="Fisioterapia com agendamento online, confirmacao por WhatsApp, pagamento com Pix, cartao ou Mercado Pago e atendimento personalizado."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="/fisiosaude/brand.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>FisioSaúde | Fisioterapia e reabilitacao</title>
-  <meta name="description"
-    content="Fisioterapia com agendamento online, confirmacao por WhatsApp, pagamento com Pix, cartao ou Mercado Pago e atendimento personalizado." />
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link
-    href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap"
-    rel="stylesheet" />
-  <link rel="stylesheet" href="/fisiosaude/brand.css" />
-</head>
-
-<body>
-  <div class="page-shell">
-    <header class="topbar">
-      <div class="brand-block">
-        <div class="brand-row">
-          <img class="brand-logo" src="/fisiosaude/img/logo-fisiosaude.png" alt="Logo FisioSaúde" />
-          <h1>FisioSaúde</h1>
-        </div>
-      </div>
-      <div class="topbar-actions">
-        <a class="ghost-button" href="#services">Servicos</a>
-        <a class="ghost-button" href="#experience">Diferenciais</a>
-        <a class="ghost-button" href="#booking">Agendar</a>
-      </div>
-    </header>
-
-    <main>
-      <section class="hero-section">
-        <div class="hero-copy">
-          <span class="hero-badge">Ciencia, movimento e recuperacao com cuidado</span>
-          <h2>Fisioterapia de excelencia com agendamento online e acompanhamento proximo.</h2>
-          <p>
-            Avaliacao individual, planos de tratamento claros, confirmacao automatica,
-            WhatsApp direto e pagamento com Pix, cartao ou Mercado Pago.
-          </p>
-          <div class="hero-cta">
-            <a class="primary-button" href="#booking">Reservar agora</a>
-            <a class="secondary-button" id="heroWhatsappButton" href="#" target="_blank" rel="noreferrer">
-              Falar no WhatsApp
-            </a>
-          </div>
-          <div class="hero-highlights">
-            <article>
-              <strong>+ Equipe qualificada</strong>
-              <span>Protocolos baseados em evidencia para dor, postura e performance.</span>
-            </article>
-            <article>
-              <strong>Agendamento online</strong>
-              <span>Confirmacao com data, horario e tipo de sessao escolhidos.</span>
-            </article>
-            <article>
-              <strong>Pagamento flexivel</strong>
-              <span>Pix, cartao e Mercado Pago com link configuravel no painel admin.</span>
-            </article>
+  <body>
+    <div class="page-shell">
+      <header class="topbar">
+        <div class="brand-block">
+          <div class="brand-row">
+            <img
+              class="brand-logo"
+              src="/fisiosaude/img/logo-fisiosaude.png"
+              alt="Logo FisioSaúde"
+            />
+            <h1>FisioSaúde</h1>
           </div>
         </div>
-
-        <div class="hero-visual">
-          <div class="hero-card luxury-frame">
-            <img src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1200&q=80"
-              alt="Sessao de fisioterapia em ambiente clinico" />
-            <div class="hero-card-overlay">
-              <span>Reabilitacao com acolhimento</span>
-              <strong>Do primeiro contato ao plano de tratamento</strong>
-            </div>
-          </div>
+        <div class="topbar-actions">
+          <a class="ghost-button" href="#services">Servicos</a>
+          <a class="ghost-button" href="#experience">Diferenciais</a>
+          <a class="ghost-button" href="#booking">Agendar</a>
         </div>
-      </section>
+      </header>
 
-      <section class="services-section" id="services">
-        <div class="section-heading">
-          <span class="section-kicker">Servicos em destaque</span>
-          <h3>Escolha o tipo de sessao e avance para o agendamento.</h3>
-          <p class="section-helper-text">
-            Os nomes dos cards devem existir no painel admin (campo Servicos). Ao abrir o primeiro deploy, copie o texto sugerido no placeholder do admin.
-          </p>
-        </div>
-
-        <div class="cards-grid">
-          <article class="service-card">
-            <img src="/fisiosaude/img/fisio1.jpg" loading="lazy"
-              alt="Fisioterapia clinica" />
-            <div class="service-card-content" data-service-card="Fisioterapia clinica individual" tabindex="0" role="button"
-              aria-label="Selecionar Fisioterapia clinica individual">
-              <span class="service-tag">Clinica</span>
-              <h4>Fisioterapia clinica individual</h4>
-              <div class="service-meta">
-                <span>50 min</span>
-                <span>R$ 120</span>
-              </div>
-              <p>Avaliacao e sessao focada na sua queixa principal com plano de cuidado claro.</p>
-              <button class="service-select-button" data-service="Fisioterapia clinica individual" type="button">
-                Agendar esta sessao
-              </button>
-            </div>
-          </article>
-
-          <article class="service-card">
-            <img src="/fisiosaude/img/fisio2.jpg" loading="lazy"
-              alt="RPG e postura" />
-            <div class="service-card-content" data-service-card="RPG e reeducacao postural" tabindex="0"
-              role="button" aria-label="Selecionar RPG e reeducacao postural">
-              <span class="service-tag">Postura</span>
-              <h4>RPG e reeducacao postural</h4>
-              <div class="service-meta">
-                <span>50 min</span>
-                <span>R$ 130</span>
-              </div>
-              <p>Alinhamento corporal, ergonomia e alivio de sobrecargas do dia a dia.</p>
-              <button class="service-select-button" data-service="RPG e reeducacao postural" type="button">
-                Agendar esta sessao
-              </button>
-            </div>
-          </article>
-
-          <article class="service-card">
-            <img src="/fisiosaude/img/fisio3.jpg" loading="lazy"
-              alt="Fisioterapia esportiva" />
-            <div class="service-card-content" data-service-card="Tratamento esportivo e lesoes" tabindex="0" role="button"
-              aria-label="Selecionar Tratamento esportivo e lesoes">
-              <span class="service-tag">Esporte</span>
-              <h4>Tratamento esportivo e lesoes</h4>
-              <div class="service-meta">
-                <span>60 min</span>
-                <span>R$ 150</span>
-              </div>
-              <p>Recuperacao de lesoes, prevencao e retorno seguro as atividades.</p>
-              <button class="service-select-button" data-service="Tratamento esportivo e lesoes" type="button">
-                Agendar esta sessao
-              </button>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="experience-section" id="experience">
-        <div class="section-heading">
-          <span class="section-kicker">Diferenciais FisioSaúde</span>
-          <h3>Clareza no tratamento e confianca no agendamento online.</h3>
-        </div>
-
-        <div class="experience-grid">
-          <article class="info-card luxury-frame">
-            <strong>Ambiente clinico acolhedor</strong>
-            <p>Espaco pensado para avaliacao, exercicios terapeuticos e privacidade.</p>
-          </article>
-          <article class="info-card luxury-frame">
-            <strong>Plano individualizado</strong>
-            <p>Cada sessao considera sua queixa, objetivos e evolucao ao longo do tratamento.</p>
-          </article>
-          <article class="info-card luxury-frame">
-            <strong>Retorno automatizado</strong>
-            <p>O cliente tem a confirmacao pronta para WhatsApp com data, horario e servico.</p>
-          </article>
-          <article class="info-card luxury-frame">
-            <strong>Pagamento facilitado</strong>
-            <p>Pix, dinheiro, cartao e Mercado Pago direto pelo site.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="booking-section" id="booking">
-        <div class="section-heading">
-          <span class="section-kicker">Agendamento inteligente</span>
-          <h3>Escolha servico, horario, pagamento e receba a confirmacao instantaneamente.</h3>
-          <p class="section-helper-text">Preencha os dados do cliente e selecione as opcoes nos cards abaixo.</p>
-        </div>
-
-        <div class="booking-layout">
-          <form class="booking-form luxury-frame" id="bookingForm">
-            <div class="form-grid">
-              <label>
-                Nome completo
-                <input id="customerName" name="customerName" type="text" placeholder="Seu nome" required />
-              </label>
-
-              <label>
-                WhatsApp
-                <input id="customerPhone" name="customerPhone" type="tel" placeholder="(11) 99999-9999" required />
-              </label>
-
-              <label>
-                E-mail
-                <input id="customerEmail" name="customerEmail" type="email" placeholder="voce@email.com" />
-              </label>
-
-              <fieldset class="radio-group-fieldset full-width">
-                <legend>Tipo de atendimento</legend>
-                <div class="radio-cards-grid" id="massageType">
-                </div>
-              </fieldset>
-
-              <label>
-                Data
-                <input id="appointmentDate" name="appointmentDate" type="date" required />
-                <small class="field-note">Atendimento de segunda a sabado.</small>
-              </label>
-
-              <fieldset class="radio-group-fieldset time-slots-fieldset">
-                <legend>Horario</legend>
-                <div class="radio-cards-grid" id="appointmentTime">
-                </div>
-                <small class="field-note">Horarios disponiveis das 08:00 as 18:00.</small>
-              </fieldset>
-
-              <fieldset class="radio-group-fieldset full-width">
-                <legend>Forma de pagamento</legend>
-                <div class="radio-cards-grid" id="paymentMethod">
-                </div>
-              </fieldset>
-
-              <label>
-                Unidade ou regiao
-                <input id="serviceRegion" name="serviceRegion" type="text"
-                  placeholder="Centro, Ponta Grossa ou atendimento a domicilio" />
-              </label>
-
-              <label class="full-width">
-                Observacoes
-                <textarea id="customerNotes" name="customerNotes" rows="4"
-                  placeholder="Preferencias, dores ou informacoes importantes"></textarea>
-              </label>
-            </div>
-
-            <div class="form-actions">
-              <button class="primary-button" type="submit">Confirmar agendamento</button>
-              <a class="secondary-button" id="formWhatsappButton" href="#" target="_blank" rel="noreferrer">
-                Chamar no WhatsApp
+      <main>
+        <section class="hero-section">
+          <div class="hero-copy">
+            <span class="hero-badge"
+              >Ciencia, movimento e recuperacao com cuidado</span
+            >
+            <h2>
+              Fisioterapia de excelencia com agendamento online e acompanhamento
+              proximo.
+            </h2>
+            <p>
+              Avaliacao individual, planos de tratamento claros, confirmacao
+              automatica, WhatsApp direto e pagamento com Pix, cartao ou Mercado
+              Pago.
+            </p>
+            <div class="hero-cta">
+              <a class="primary-button" href="#booking">Reservar agora</a>
+              <a
+                class="secondary-button"
+                id="heroWhatsappButton"
+                href="#"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Falar no WhatsApp
               </a>
             </div>
-          </form>
-
-          <aside class="booking-side-panel luxury-frame">
-            <div class="side-panel-hero-image">
-              <img src="/fisiosaude/img/ahmet.jpg" alt="FisioSaúde" />
+            <div class="hero-highlights">
+              <article>
+                <strong>+ Equipe qualificada</strong>
+                <span
+                  >Protocolos baseados em evidencia para dor, postura e
+                  performance.</span
+                >
+              </article>
+              <article>
+                <strong>Agendamento online</strong>
+                <span
+                  >Confirmacao com data, horario e tipo de sessao
+                  escolhidos.</span
+                >
+              </article>
+              <article>
+                <strong>Pagamento flexivel</strong>
+                <span
+                  >Pix, cartao e Mercado Pago com link configuravel no painel
+                  admin.</span
+                >
+              </article>
             </div>
-
-            <div class="booking-panel-card" id="bookingSummaryCard">
-              <span class="panel-kicker">Resumo da reserva</span>
-              <h4>Visualize o atendimento antes de confirmar</h4>
-              <div class="summary-list">
-                <div class="summary-item">
-                  <span>Servico</span>
-                  <strong id="summaryService">Confira seu agendamento</strong>
-                </div>
-                <div class="summary-item">
-                  <span>Duracao</span>
-                  <strong id="summaryDuration">-</strong>
-                </div>
-                <div class="summary-item">
-                  <span>Valor</span>
-                  <strong id="summaryPrice">-</strong>
-                </div>
-                <div class="summary-item">
-                  <span>Pagamento</span>
-                  <strong id="summaryPayment">-</strong>
-                </div>
-                <div class="summary-item">
-                  <span>Local</span>
-                  <strong id="summaryRegion">-</strong>
-                </div>
-                <div class="summary-item">
-                  <span>Horario</span>
-                  <strong id="summaryDateTime">-</strong>
-                </div>
-              </div>
-            </div>
-
-            <div class="booking-panel-card confirmation-card hidden" id="confirmationCard">
-              <span class="panel-kicker">Agendamento confirmado</span>
-              <h4 id="confirmationTitle">Sua sessao esta reservada.</h4>
-              <p id="confirmationText"></p>
-              <div class="confirmation-actions">
-                <a class="primary-button" id="confirmationWhatsappLink" href="#" target="_blank" rel="noreferrer">
-                  Enviar confirmacao no WhatsApp
-                </a>
-                <a class="secondary-button hidden" id="mercadoPagoLink" href="#" target="_blank" rel="noreferrer">
-                  Pagar com Mercado Pago
-                </a>
-              </div>
-            </div>
-          </aside>
-        </div>
-      </section>
-
-      <section class="testimonials-section" id="testimonials">
-        <div class="section-heading">
-          <span class="section-kicker">Prova social</span>
-          <h3>Depoimentos de pacientes e resultados.</h3>
-        </div>
-
-        <div class="testimonials-grid">
-          <article class="testimonial-card luxury-frame">
-            <p>"Depois da lesao no joelho, a equipe da FisioSaúde me devolveu confianca para treinar de novo."</p>
-            <strong>Mariana S.</strong>
-          </article>
-          <article class="testimonial-card luxury-frame">
-            <p>"Agendei pelo site em poucos minutos e recebi a confirmacao com horario e forma de pagamento."</p>
-            <strong>Rafael M.</strong>
-          </article>
-          <article class="testimonial-card luxury-frame">
-            <p>"O acompanhamento de postura com RPG fez diferenca no meu trabalho no escritorio."</p>
-            <strong>Patricia L.</strong>
-          </article>
-        </div>
-      </section>
-
-      <section class="faq-section">
-        <div class="section-heading">
-          <span class="section-kicker">Perguntas frequentes</span>
-          <h3>Respostas rapidas para reduzir objeções antes do agendamento.</h3>
-        </div>
-
-        <div class="faq-grid">
-          <article class="faq-card luxury-frame">
-            <strong>Como funciona a confirmacao?</strong>
-            <p>Assim que o cliente agenda, o sistema gera a confirmacao com servico, data e horario.</p>
-          </article>
-          <article class="faq-card luxury-frame">
-            <strong>Como pago com Mercado Pago?</strong>
-            <p>Ao escolher Mercado Pago, o cliente recebe o link de checkout.</p>
-          </article>
-          <article class="faq-card luxury-frame">
-            <strong>Posso personalizar o atendimento?</strong>
-            <p>Sim. O campo de observacoes permite informar dores, preferencias e necessidades especiais.</p>
-          </article>
-        </div>
-      </section>
-    </main>
-  </div>
-
-  <a class="floating-whatsapp" id="floatingWhatsappButton" href="#" target="_blank" rel="noreferrer">
-    WhatsApp
-  </a>
-
-  <div class="modal-backdrop hidden" id="adminModal">
-    <div class="admin-modal luxury-frame" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
-      <div class="admin-modal-header">
-        <div>
-          <span class="section-kicker">Painel administrativo</span>
-          <h3 id="adminTitle">Gerenciar agendamentos e configuracoes</h3>
-        </div>
-        <button class="close-button" id="closeAdminModal" type="button" aria-label="Fechar painel">
-          x
-        </button>
-      </div>
-
-      <div class="admin-login" id="adminLogin">
-        <label>
-          Senha admin
-          <input id="adminPassword" type="password" placeholder="Digite a senha" />
-        </label>
-        <button class="primary-button" id="adminLoginButton" type="button">Entrar</button>
-        <p class="admin-hint">Use sua senha administrativa.</p>
-      </div>
-
-      <div class="admin-content hidden" id="adminContent">
-        <section class="admin-settings">
-          <h4>Configuracoes rapidas</h4>
-          <div class="form-grid compact-grid">
-            <label>
-              WhatsApp do negocio
-              <input id="businessWhatsapp" type="text" placeholder="5511999999999" />
-            </label>
-            <label>
-              Link Mercado Pago
-              <input id="mercadoPagoCheckout" type="url" placeholder="https://www.mercadopago.com.br/..." />
-            </label>
-            <label>
-              Chave Pix
-              <input id="pixKey" type="text" placeholder="Digite a chave Pix" />
-            </label>
-            <label>
-              Endereco de atendimento
-              <input id="businessAddress" type="text" placeholder="Digite o endereco ou regiao principal" />
-            </label>
-            <label class="full-width">
-              Servicos (uma linha por servico no formato: Nome|Duracao|Preco)
-              <textarea id="servicesCatalog" rows="6" placeholder="Fisioterapia clinica individual|50 min|120"></textarea>
-            </label>
-            <label>
-              Horarios (separados por virgula, formato HH:MM)
-              <textarea id="timeSlotsConfig" rows="3" placeholder="08:00,09:00,10:00"></textarea>
-            </label>
-            <label>
-              Formas de pagamento (uma por linha)
-              <textarea id="paymentMethodsConfig" rows="3" placeholder="Pix"></textarea>
-            </label>
-            <label>
-              Dias de atendimento (0=Domingo ... 6=Sabado)
-              <input id="allowedWeekdaysConfig" type="text" placeholder="1,2,3,4,5,6" />
-            </label>
-            <label>
-              Datas indisponiveis (uma por linha, YYYY-MM-DD)
-              <textarea id="blockedDatesConfig" rows="3" placeholder="2026-12-25"></textarea>
-            </label>
           </div>
-          <div class="form-actions">
-            <button class="primary-button" id="saveSettingsButton" type="button">Salvar configuracoes</button>
+
+          <div class="hero-visual">
+            <div class="hero-card luxury-frame">
+              <img
+                src="https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?auto=format&fit=crop&w=1200&q=80"
+                alt="Sessao de fisioterapia em ambiente clinico"
+              />
+              <div class="hero-card-overlay">
+                <span>Reabilitacao com acolhimento</span>
+                <strong>Do primeiro contato ao plano de tratamento</strong>
+              </div>
+            </div>
           </div>
         </section>
 
-        <section class="admin-stats" id="adminStats"></section>
+        <section class="services-section" id="services">
+          <div class="section-heading">
+            <span class="section-kicker">Servicos em destaque</span>
+            <h3>Escolha o tipo de sessao e avance para o agendamento.</h3>
+            <p class="section-helper-text">
+              Os nomes dos cards devem existir no painel admin (campo Servicos).
+              Ao abrir o primeiro deploy, copie o texto sugerido no placeholder
+              do admin.
+            </p>
+          </div>
 
-        <section class="admin-list-section">
-          <div class="admin-list-header">
-            <h4>Agendamentos</h4>
-            <div class="admin-inline-actions">
-              <button class="secondary-button" id="exportServedClientsButton" type="button">
-                Exportar clientes atendidos
-              </button>
-              <button class="secondary-button" id="exportAppointmentsButton" type="button">
-                Exportar JSON
-              </button>
-              <button class="secondary-button" id="clearCompletedButton" type="button">
-                Remover cancelados
+          <div class="cards-grid">
+            <article class="service-card">
+              <img
+                src="/fisiosaude/img/fisio1.jpg"
+                loading="lazy"
+                alt="Fisioterapia clinica"
+              />
+              <div
+                class="service-card-content"
+                data-service-card="Fisioterapia clinica individual"
+                tabindex="0"
+                role="button"
+                aria-label="Selecionar Fisioterapia clinica individual"
+              >
+                <span class="service-tag">Clinica</span>
+                <h4>Fisioterapia clinica individual</h4>
+                <div class="service-meta">
+                  <span>50 min</span>
+                  <span>R$ 120</span>
+                </div>
+                <p>
+                  Avaliacao e sessao focada na sua queixa principal com plano de
+                  cuidado claro.
+                </p>
+                <button
+                  class="service-select-button"
+                  data-service="Fisioterapia clinica individual"
+                  type="button"
+                >
+                  Agendar esta sessao
+                </button>
+              </div>
+            </article>
+
+            <article class="service-card">
+              <img
+                src="/fisiosaude/img/fisio2.jpg"
+                loading="lazy"
+                alt="RPG e postura"
+              />
+              <div
+                class="service-card-content"
+                data-service-card="RPG e reeducacao postural"
+                tabindex="0"
+                role="button"
+                aria-label="Selecionar RPG e reeducacao postural"
+              >
+                <span class="service-tag">Postura</span>
+                <h4>RPG e reeducacao postural</h4>
+                <div class="service-meta">
+                  <span>50 min</span>
+                  <span>R$ 130</span>
+                </div>
+                <p>
+                  Alinhamento corporal, ergonomia e alivio de sobrecargas do dia
+                  a dia.
+                </p>
+                <button
+                  class="service-select-button"
+                  data-service="RPG e reeducacao postural"
+                  type="button"
+                >
+                  Agendar esta sessao
+                </button>
+              </div>
+            </article>
+
+            <article class="service-card">
+              <img
+                src="/fisiosaude/img/fisio3.jpg"
+                loading="lazy"
+                alt="Fisioterapia esportiva"
+              />
+              <div
+                class="service-card-content"
+                data-service-card="Tratamento esportivo e lesoes"
+                tabindex="0"
+                role="button"
+                aria-label="Selecionar Tratamento esportivo e lesoes"
+              >
+                <span class="service-tag">Esporte</span>
+                <h4>Tratamento esportivo e lesoes</h4>
+                <div class="service-meta">
+                  <span>60 min</span>
+                  <span>R$ 150</span>
+                </div>
+                <p>
+                  Recuperacao de lesoes, prevencao e retorno seguro as
+                  atividades.
+                </p>
+                <button
+                  class="service-select-button"
+                  data-service="Tratamento esportivo e lesoes"
+                  type="button"
+                >
+                  Agendar esta sessao
+                </button>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="experience-section" id="experience">
+          <div class="section-heading">
+            <span class="section-kicker">Diferenciais FisioSaúde</span>
+            <h3>Clareza no tratamento e confianca no agendamento online.</h3>
+          </div>
+
+          <div class="experience-grid">
+            <article class="info-card luxury-frame">
+              <strong>Ambiente clinico acolhedor</strong>
+              <p>
+                Espaco pensado para avaliacao, exercicios terapeuticos e
+                privacidade.
+              </p>
+            </article>
+            <article class="info-card luxury-frame">
+              <strong>Plano individualizado</strong>
+              <p>
+                Cada sessao considera sua queixa, objetivos e evolucao ao longo
+                do tratamento.
+              </p>
+            </article>
+            <article class="info-card luxury-frame">
+              <strong>Retorno automatizado</strong>
+              <p>
+                O cliente tem a confirmacao pronta para WhatsApp com data,
+                horario e servico.
+              </p>
+            </article>
+            <article class="info-card luxury-frame">
+              <strong>Pagamento facilitado</strong>
+              <p>Pix, dinheiro, cartao e Mercado Pago direto pelo site.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="booking-section" id="booking">
+          <div class="section-heading">
+            <span class="section-kicker">Agendamento inteligente</span>
+            <h3>
+              Escolha servico, horario, pagamento e receba a confirmacao
+              instantaneamente.
+            </h3>
+            <p class="section-helper-text">
+              Preencha os dados do cliente e selecione as opcoes nos cards
+              abaixo.
+            </p>
+          </div>
+
+          <div class="booking-layout">
+            <form class="booking-form luxury-frame" id="bookingForm">
+              <div class="form-grid">
+                <label>
+                  Nome completo
+                  <input
+                    id="customerName"
+                    name="customerName"
+                    type="text"
+                    placeholder="Seu nome"
+                    required
+                  />
+                </label>
+
+                <label>
+                  WhatsApp
+                  <input
+                    id="customerPhone"
+                    name="customerPhone"
+                    type="tel"
+                    placeholder="(11) 99999-9999"
+                    required
+                  />
+                </label>
+
+                <label>
+                  E-mail
+                  <input
+                    id="customerEmail"
+                    name="customerEmail"
+                    type="email"
+                    placeholder="voce@email.com"
+                  />
+                </label>
+
+                <fieldset class="radio-group-fieldset full-width">
+                  <legend>Tipo de atendimento</legend>
+                  <div class="radio-cards-grid" id="massageType"></div>
+                </fieldset>
+
+                <label>
+                  Data
+                  <input
+                    id="appointmentDate"
+                    name="appointmentDate"
+                    type="date"
+                    required
+                  />
+                  <small class="field-note"
+                    >Atendimento de segunda a sabado.</small
+                  >
+                </label>
+
+                <fieldset class="radio-group-fieldset time-slots-fieldset">
+                  <legend>Horario</legend>
+                  <div class="radio-cards-grid" id="appointmentTime"></div>
+                  <small class="field-note"
+                    >Horarios disponiveis das 08:00 as 18:00.</small
+                  >
+                </fieldset>
+
+                <fieldset class="radio-group-fieldset full-width">
+                  <legend>Forma de pagamento</legend>
+                  <div class="radio-cards-grid" id="paymentMethod"></div>
+                </fieldset>
+
+                <label>
+                  Unidade ou regiao
+                  <input
+                    id="serviceRegion"
+                    name="serviceRegion"
+                    type="text"
+                    placeholder="Centro, Ponta Grossa ou atendimento a domicilio"
+                  />
+                </label>
+
+                <label class="full-width">
+                  Observacoes
+                  <textarea
+                    id="customerNotes"
+                    name="customerNotes"
+                    rows="4"
+                    placeholder="Preferencias, dores ou informacoes importantes"
+                  ></textarea>
+                </label>
+              </div>
+
+              <div
+                class="booking-panel-card"
+                id="bookingSummaryCard"
+                style="
+                  margin-bottom: 24px;
+                  box-shadow: none;
+                  background: rgba(0, 0, 0, 0.02);
+                "
+              >
+                <span class="panel-kicker">Resumo da reserva</span>
+                <h4>Visualize o atendimento antes de confirmar</h4>
+                <div class="summary-list">
+                  <div class="summary-item">
+                    <span>Servico</span>
+                    <strong id="summaryService">Confira seu agendamento</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Duracao</span>
+                    <strong id="summaryDuration">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Valor</span>
+                    <strong id="summaryPrice">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Pagamento</span>
+                    <strong id="summaryPayment">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Local</span>
+                    <strong id="summaryRegion">-</strong>
+                  </div>
+                  <div class="summary-item">
+                    <span>Horario</span>
+                    <strong id="summaryDateTime">-</strong>
+                  </div>
+                </div>
+              </div>
+
+              <div
+                class="booking-panel-card confirmation-card hidden"
+                id="confirmationCard"
+                style="
+                  margin-bottom: 24px;
+                  box-shadow: none;
+                  background: rgba(39, 211, 102, 0.05);
+                  border-color: rgba(39, 211, 102, 0.4);
+                "
+              >
+                <span class="panel-kicker">Agendamento confirmado</span>
+                <h4 id="confirmationTitle">Sua sessao esta reservada.</h4>
+                <p id="confirmationText"></p>
+                <div class="confirmation-actions" style="margin-top: 16px">
+                  <a
+                    class="primary-button"
+                    id="confirmationWhatsappLink"
+                    href="#"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Enviar confirmacao no WhatsApp
+                  </a>
+                  <a
+                    class="secondary-button hidden"
+                    id="mercadoPagoLink"
+                    href="#"
+                    target="_blank"
+                    rel="noreferrer"
+                  >
+                    Pagar com Mercado Pago
+                  </a>
+                </div>
+              </div>
+
+              <div class="form-actions">
+                <button class="primary-button" type="submit">
+                  Confirmar agendamento
+                </button>
+                <a
+                  class="secondary-button"
+                  id="formWhatsappButton"
+                  href="#"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Chamar no WhatsApp
+                </a>
+              </div>
+            </form>
+
+            <aside
+              class="booking-side-panel luxury-frame"
+              style="
+                padding: 0;
+                background: transparent;
+                border: none;
+                box-shadow: none;
+                overflow: hidden;
+              "
+            >
+              <div
+                class="side-panel-hero-image"
+                style="
+                  margin: 0;
+                  border: none;
+                  border-radius: 28px;
+                  height: 100%;
+                "
+              >
+                <img
+                  src="/fisiosaude/img/ahmet.jpg"
+                  alt="FisioSaúde"
+                  style="width: 100%; height: 100%; object-fit: cover"
+                />
+              </div>
+            </aside>
+          </div>
+        </section>
+
+        <section class="testimonials-section" id="testimonials">
+          <div class="section-heading">
+            <span class="section-kicker">Prova social</span>
+            <h3>Depoimentos de pacientes e resultados.</h3>
+          </div>
+
+          <div class="testimonials-grid">
+            <article class="testimonial-card luxury-frame">
+              <p>
+                "Depois da lesao no joelho, a equipe da FisioSaúde me devolveu
+                confianca para treinar de novo."
+              </p>
+              <strong>Mariana S.</strong>
+            </article>
+            <article class="testimonial-card luxury-frame">
+              <p>
+                "Agendei pelo site em poucos minutos e recebi a confirmacao com
+                horario e forma de pagamento."
+              </p>
+              <strong>Rafael M.</strong>
+            </article>
+            <article class="testimonial-card luxury-frame">
+              <p>
+                "O acompanhamento de postura com RPG fez diferenca no meu
+                trabalho no escritorio."
+              </p>
+              <strong>Patricia L.</strong>
+            </article>
+          </div>
+        </section>
+
+        <section class="faq-section">
+          <div class="section-heading">
+            <span class="section-kicker">Perguntas frequentes</span>
+            <h3>
+              Respostas rapidas para reduzir objeções antes do agendamento.
+            </h3>
+          </div>
+
+          <div class="faq-grid">
+            <article class="faq-card luxury-frame">
+              <strong>Como funciona a confirmacao?</strong>
+              <p>
+                Assim que o cliente agenda, o sistema gera a confirmacao com
+                servico, data e horario.
+              </p>
+            </article>
+            <article class="faq-card luxury-frame">
+              <strong>Como pago com Mercado Pago?</strong>
+              <p>
+                Ao escolher Mercado Pago, o cliente recebe o link de checkout.
+              </p>
+            </article>
+            <article class="faq-card luxury-frame">
+              <strong>Posso personalizar o atendimento?</strong>
+              <p>
+                Sim. O campo de observacoes permite informar dores, preferencias
+                e necessidades especiais.
+              </p>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <a
+      class="floating-whatsapp"
+      id="floatingWhatsappButton"
+      href="#"
+      target="_blank"
+      rel="noreferrer"
+    >
+      WhatsApp
+    </a>
+
+    <div class="modal-backdrop hidden" id="adminModal">
+      <div
+        class="admin-modal luxury-frame"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="adminTitle"
+      >
+        <div class="admin-modal-header">
+          <div>
+            <span class="section-kicker">Painel administrativo</span>
+            <h3 id="adminTitle">Gerenciar agendamentos e configuracoes</h3>
+          </div>
+          <button
+            class="close-button"
+            id="closeAdminModal"
+            type="button"
+            aria-label="Fechar painel"
+          >
+            x
+          </button>
+        </div>
+
+        <div class="admin-login" id="adminLogin">
+          <label>
+            Senha admin
+            <input
+              id="adminPassword"
+              type="password"
+              placeholder="Digite a senha"
+            />
+          </label>
+          <button class="primary-button" id="adminLoginButton" type="button">
+            Entrar
+          </button>
+          <p class="admin-hint">Use sua senha administrativa.</p>
+        </div>
+
+        <div class="admin-content hidden" id="adminContent">
+          <section class="admin-settings">
+            <h4>Configuracoes rapidas</h4>
+            <div class="form-grid compact-grid">
+              <label>
+                WhatsApp do negocio
+                <input
+                  id="businessWhatsapp"
+                  type="text"
+                  placeholder="5511999999999"
+                />
+              </label>
+              <label>
+                Link Mercado Pago
+                <input
+                  id="mercadoPagoCheckout"
+                  type="url"
+                  placeholder="https://www.mercadopago.com.br/..."
+                />
+              </label>
+              <label>
+                Chave Pix
+                <input
+                  id="pixKey"
+                  type="text"
+                  placeholder="Digite a chave Pix"
+                />
+              </label>
+              <label>
+                Endereco de atendimento
+                <input
+                  id="businessAddress"
+                  type="text"
+                  placeholder="Digite o endereco ou regiao principal"
+                />
+              </label>
+              <label class="full-width">
+                Servicos (uma linha por servico no formato: Nome|Duracao|Preco)
+                <textarea
+                  id="servicesCatalog"
+                  rows="6"
+                  placeholder="Fisioterapia clinica individual|50 min|120"
+                ></textarea>
+              </label>
+              <label>
+                Horarios (separados por virgula, formato HH:MM)
+                <textarea
+                  id="timeSlotsConfig"
+                  rows="3"
+                  placeholder="08:00,09:00,10:00"
+                ></textarea>
+              </label>
+              <label>
+                Formas de pagamento (uma por linha)
+                <textarea
+                  id="paymentMethodsConfig"
+                  rows="3"
+                  placeholder="Pix"
+                ></textarea>
+              </label>
+              <label>
+                Dias de atendimento (0=Domingo ... 6=Sabado)
+                <input
+                  id="allowedWeekdaysConfig"
+                  type="text"
+                  placeholder="1,2,3,4,5,6"
+                />
+              </label>
+              <label>
+                Datas indisponiveis (uma por linha, YYYY-MM-DD)
+                <textarea
+                  id="blockedDatesConfig"
+                  rows="3"
+                  placeholder="2026-12-25"
+                ></textarea>
+              </label>
+            </div>
+            <div class="form-actions">
+              <button
+                class="primary-button"
+                id="saveSettingsButton"
+                type="button"
+              >
+                Salvar configuracoes
               </button>
             </div>
-          </div>
-          <div class="admin-filters">
-            <label>
-              Buscar cliente
-              <input id="appointmentSearch" type="text" placeholder="Nome, servico ou telefone" />
-            </label>
-            <label>
-              Status
-              <select id="appointmentStatusFilter">
-                <option value="all">Todos</option>
-                <option value="confirmed">Confirmados</option>
-                <option value="cancelled">Cancelados</option>
-              </select>
-            </label>
-            <label>
-              Pagamento
-              <select id="paymentStatusFilter">
-                <option value="all">Todos</option>
-                <option value="pending">Pendente</option>
-                <option value="paid">Pago</option>
-              </select>
-            </label>
-          </div>
-          <div class="admin-list" id="appointmentsList"></div>
-        </section>
+          </section>
+
+          <section class="admin-stats" id="adminStats"></section>
+
+          <section class="admin-list-section">
+            <div class="admin-list-header">
+              <h4>Agendamentos</h4>
+              <div class="admin-inline-actions">
+                <button
+                  class="secondary-button"
+                  id="exportServedClientsButton"
+                  type="button"
+                >
+                  Exportar clientes atendidos
+                </button>
+                <button
+                  class="secondary-button"
+                  id="exportAppointmentsButton"
+                  type="button"
+                >
+                  Exportar JSON
+                </button>
+                <button
+                  class="secondary-button"
+                  id="clearCompletedButton"
+                  type="button"
+                >
+                  Remover cancelados
+                </button>
+              </div>
+            </div>
+            <div class="admin-filters">
+              <label>
+                Buscar cliente
+                <input
+                  id="appointmentSearch"
+                  type="text"
+                  placeholder="Nome, servico ou telefone"
+                />
+              </label>
+              <label>
+                Status
+                <select id="appointmentStatusFilter">
+                  <option value="all">Todos</option>
+                  <option value="confirmed">Confirmados</option>
+                  <option value="cancelled">Cancelados</option>
+                </select>
+              </label>
+              <label>
+                Pagamento
+                <select id="paymentStatusFilter">
+                  <option value="all">Todos</option>
+                  <option value="pending">Pendente</option>
+                  <option value="paid">Pago</option>
+                </select>
+              </label>
+            </div>
+            <div class="admin-list" id="appointmentsList"></div>
+          </section>
+        </div>
       </div>
     </div>
-  </div>
 
-  <script src="/fisiosaude/site-config.js"></script>
-  <script src="/script.js"></script>
-</body>
-
+    <script src="/fisiosaude/site-config.js"></script>
+    <script src="/script.js"></script>
+  </body>
 </html>
