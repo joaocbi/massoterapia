@@ -55,9 +55,12 @@ Para divulgacao e explicacao detalhada ao cliente final, use tambem:
 
 ### Acesso ao painel
 
-1. Abra o site.
-2. Clique em `Admin` no topo.
-3. Informe a senha administrativa e clique em `Entrar`.
+O botao de admin nao fica visivel no site publico.
+
+- Terapia: abra `/admin`
+- FisioSaude: abra `/fisiosaude/admin`
+
+Depois informe a senha administrativa e clique em `Entrar`.
 
 ### Configuracoes principais
 
