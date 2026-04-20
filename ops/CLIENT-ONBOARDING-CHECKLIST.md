@@ -12,6 +12,8 @@ Use este fluxo para subir um novo cliente de terapia/fisio com isolamento total 
 ## 2) Projeto e repositorio
 
 - [ ] Duplicar o template base para uma pasta nova.
+- [ ] Opcional: gerar plano automatico do cliente:
+  - `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\generate-client-plan.ps1 -ClientName "Nome Cliente" -SiteType terapia -Domain dominio.com.br`
 - [ ] Nomear pasta/repo com padrao: `site-<tipo>-<cliente>`.
 - [ ] Criar repositorio Git remoto do cliente.
 - [ ] Subir branch `main`.
