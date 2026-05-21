@@ -769,6 +769,10 @@ textarea:focus {
   border-radius: 20px;
 }
 
+.admin-stats article span {
+  color: var(--text-soft);
+}
+
 .admin-inline-actions,
 .appointment-item-actions,
 .appointment-payment-row {
@@ -790,6 +794,10 @@ textarea:focus {
 .appointment-item h5,
 .appointment-item p {
   margin: 0;
+}
+
+.appointment-item textarea {
+  min-height: 96px;
 }
 
 .appointment-item-meta,
@@ -868,6 +876,10 @@ textarea:focus {
   .hero-card {
     min-height: 420px;
   }
+
+  .admin-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (max-width: 720px) {
@@ -896,6 +908,10 @@ textarea:focus {
 
   .form-grid,
   .appointment-item {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-stats {
     grid-template-columns: 1fr;
   }
 

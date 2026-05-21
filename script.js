@@ -31,6 +31,9 @@ const state = {
     search: "",
     status: "all",
     paymentStatus: "all",
+    applicationSearch: "",
+    applicationStatus: "all",
+    subscriptionStatus: "all",
   },
 };
 
@@ -75,6 +78,9 @@ const blockedDatesConfigField = document.getElementById("blockedDatesConfig");
 const appointmentSearchField = document.getElementById("appointmentSearch");
 const appointmentStatusFilterField = document.getElementById("appointmentStatusFilter");
 const paymentStatusFilterField = document.getElementById("paymentStatusFilter");
+const applicationSearchField = document.getElementById("applicationSearch");
+const applicationStatusFilterField = document.getElementById("applicationStatusFilter");
+const subscriptionStatusFilterField = document.getElementById("subscriptionStatusFilter");
 const applicationConfirmationCard = document.getElementById("applicationConfirmationCard");
 const applicationConfirmationTitle = document.getElementById("applicationConfirmationTitle");
 const applicationConfirmationText = document.getElementById("applicationConfirmationText");
@@ -128,6 +134,9 @@ function bindEvents() {
   appointmentSearchField?.addEventListener("input", handleFiltersChange);
   appointmentStatusFilterField?.addEventListener("change", handleFiltersChange);
   paymentStatusFilterField?.addEventListener("change", handleFiltersChange);
+  applicationSearchField?.addEventListener("input", handleFiltersChange);
+  applicationStatusFilterField?.addEventListener("change", handleFiltersChange);
+  subscriptionStatusFilterField?.addEventListener("change", handleFiltersChange);
 
   adminModal?.addEventListener("click", (event) => {
     if (event.target === adminModal) {
@@ -687,6 +696,10 @@ function renderAdminStats() {
   const awaitingPayment = state.appointments.filter((item) => item.status === "pending_payment").length;
   const cancelled = state.appointments.filter((item) => item.status === "cancelled").length;
   const paid = state.appointments.filter((item) => item.paymentStatus === "paid").length;
+  const applications = getProfessionalApplicationsArray();
+  const activePartners = applications.filter((item) => item.subscriptionStatus === "active").length;
+  const overduePartners = applications.filter((item) => item.subscriptionStatus === "overdue").length;
+  const blockedPartners = applications.filter((item) => item.subscriptionStatus === "blocked").length;
 
   adminStats.innerHTML = `
     <article><strong>${total}</strong><span>Total de pedidos</span></article>
@@ -695,6 +708,9 @@ function renderAdminStats() {
     <article><strong>${cancelled}</strong><span>Cancelados</span></article>
     <article><strong>${paid}</strong><span>Pagos</span></article>
     <article><strong>${state.settings.professionals.length}</strong><span>Profissionais ativas</span></article>
+    <article><strong>${activePartners}</strong><span>Assinaturas ativas</span></article>
+    <article><strong>${overduePartners}</strong><span>Parceiras em atraso</span></article>
+    <article><strong>${blockedPartners}</strong><span>Parceiras bloqueadas</span></article>
   `;
 }
 
@@ -783,7 +799,7 @@ function renderProfessionalApplications() {
     return;
   }
 
-  const applications = Array.isArray(state.professionalApplications) ? state.professionalApplications : [];
+  const applications = getFilteredProfessionalApplications();
   professionalApplicationsList.innerHTML = "";
 
   if (!applications.length) {
@@ -823,6 +839,7 @@ function renderProfessionalApplications() {
       </div>
       <div class="appointment-item-actions">
         <a class="secondary-button" href="${buildWhatsappUrl(application.whatsapp, `Ola ${application.fullName}, recebemos sua solicitacao de cadastro na ${BRAND_NAME}.`)}" target="_blank" rel="noreferrer">WhatsApp</a>
+        <button class="secondary-button" data-application-action="welcome" data-id="${application.id}" type="button">Boas-vindas</button>
         <button class="secondary-button" data-application-status="pending" data-id="${application.id}" type="button">Pendente</button>
         <button class="secondary-button" data-application-status="in_contact" data-id="${application.id}" type="button">Em contato</button>
         <button class="secondary-button" data-application-status="approved" data-id="${application.id}" type="button">Aprovar</button>
@@ -871,6 +888,15 @@ async function handleProfessionalApplicationUiAction(action, applicationId) {
     return;
   }
 
+  if (action === "welcome") {
+    window.open(
+      buildWhatsappUrl(application.whatsapp, buildProfessionalWelcomeMessage(application)),
+      "_blank",
+      "noopener,noreferrer"
+    );
+    return;
+  }
+
   if (action === "save_note") {
     const noteField = professionalApplicationsList.querySelector(`textarea[data-application-note="${applicationId}"]`);
     await updateProfessionalApplication(applicationId, {
@@ -916,7 +942,11 @@ function handleFiltersChange() {
   state.filters.search = appointmentSearchField.value.trim().toLowerCase();
   state.filters.status = appointmentStatusFilterField.value;
   state.filters.paymentStatus = paymentStatusFilterField.value;
+  state.filters.applicationSearch = applicationSearchField?.value.trim().toLowerCase() || "";
+  state.filters.applicationStatus = applicationStatusFilterField?.value || "all";
+  state.filters.subscriptionStatus = subscriptionStatusFilterField?.value || "all";
   renderAppointments();
+  renderProfessionalApplications();
 }
 
 function getFilteredAppointments() {
@@ -935,6 +965,30 @@ function getFilteredAppointments() {
       (appointment.paymentStatus || "pending") === state.filters.paymentStatus;
 
     return matchesSearch && matchesStatus && matchesPaymentStatus;
+  });
+}
+
+function getFilteredProfessionalApplications() {
+  return getProfessionalApplicationsArray().filter((application) => {
+    const searchText = [
+      application.fullName,
+      application.whatsapp,
+      application.email,
+      application.city,
+      application.instagram,
+      application.specialties,
+    ]
+      .join(" ")
+      .toLowerCase();
+
+    const matchesSearch = !state.filters.applicationSearch || searchText.includes(state.filters.applicationSearch);
+    const matchesStatus =
+      state.filters.applicationStatus === "all" || application.status === state.filters.applicationStatus;
+    const matchesSubscription =
+      state.filters.subscriptionStatus === "all" ||
+      application.subscriptionStatus === state.filters.subscriptionStatus;
+
+    return matchesSearch && matchesStatus && matchesSubscription;
   });
 }
 
@@ -1316,6 +1370,15 @@ function buildProfessionalApplicationWhatsappSummary(payload) {
   ].join(" ");
 }
 
+function buildProfessionalWelcomeMessage(application) {
+  return [
+    `Ola ${application.fullName || ""}, seja muito bem-vinda a ${BRAND_NAME}.`,
+    "Recebemos seu cadastro e agradecemos pelo interesse em fazer parte da plataforma.",
+    "Seu perfil esta em processo de onboarding comercial e vamos orientar os proximos passos por aqui.",
+    "Conte conosco para alinhar mensalidade, confirmacao e publicacao do perfil.",
+  ].join(" ");
+}
+
 function buildWhatsappUrl(phone, message) {
   const sanitizedPhone = sanitizeWhatsappNumber(phone);
   if (!sanitizedPhone) {
@@ -1608,6 +1671,10 @@ function getAvailabilityArray() {
 
 function getAppointmentsArray() {
   return Array.isArray(state.appointments) ? state.appointments : [];
+}
+
+function getProfessionalApplicationsArray() {
+  return Array.isArray(state.professionalApplications) ? state.professionalApplications : [];
 }
 
 function fallbackProfessionalImage() {
