@@ -1,37 +1,32 @@
 const APP_CONFIG = window.LUXOR_CONFIG || {};
 const BRAND_NAME = APP_CONFIG.brandName || "Flow Terapias";
-/** Used when the static site is on GitHub Pages and apiBaseUrl is not set in site-config.js */
 const FALLBACK_API_BASE = "https://flowterapia.vercel.app";
-const ADMIN_ALERT_WHATSAPP = "5542991628586";
-const PREPAYMENT_METHODS = new Set(["Pix", "Cartao de Credito", "Cartao de Debito"]);
+const DEFAULT_BOUNDARY_OPTIONS = [
+  "Atendimento exclusivamente profissional",
+  "Nao realizo qualquer contato intimo",
+  "Nao aceito pedidos inapropriados",
+  "Sessao encerrada em caso de desrespeito",
+  "Privacidade e respeito sao obrigatorios",
+];
 
-function isPixPaymentMethod(paymentMethod) {
-  return /^pix$/i.test(String(paymentMethod || "").trim());
-}
 const DEFAULT_SETTINGS = {
   businessWhatsapp: "5511999999999",
-  mercadoPagoCheckout: "https://www.mercadopago.com.br/",
+  mercadoPagoCheckout: "",
   pixKey: "",
   businessAddress: "",
-  services: [
-    { name: "Massagem Relaxante Flow", duration: "60 min", price: 180 },
-    { name: "Massagem Terapeutica Premium", duration: "75 min", price: 240 },
-    { name: "Tantrica Flow", duration: "90 min", price: 320 },
-    { name: "Drenagem Linfatica", duration: "60 min", price: 210 },
-    { name: "Massagem Modeladora", duration: "50 min", price: 190 },
-    { name: "Atendimento Personalizado", duration: "Sob consulta", price: 260 },
-  ],
-  timeSlots: ["08:00", "09:00", "10:00", "11:00", "12:00", "13:00", "14:00", "15:00", "16:00", "17:00", "18:00"],
-  paymentMethods: ["Pix", "Cartao de Credito", "Cartao de Debito"],
-  allowedWeekdays: [1, 2, 3, 4, 5, 6],
   blockedDates: [],
+  professionals: [],
 };
+
+const WEEKDAY_LABELS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sab"];
 
 const state = {
   adminPassword: "",
   appointments: [],
   availability: [],
-  settings: { ...DEFAULT_SETTINGS },
+  professionalApplications: [],
+  settings: structuredClone(DEFAULT_SETTINGS),
+  selectedProfessionalId: "",
   filters: {
     search: "",
     status: "all",
@@ -40,34 +35,22 @@ const state = {
 };
 
 const bookingForm = document.getElementById("bookingForm");
+const professionalApplicationForm = document.getElementById("professionalApplicationForm");
+const professionalCards = document.getElementById("professionalCards");
+const professionalSelector = document.getElementById("professionalSelector");
+const selectedProfessionalPanel = document.getElementById("selectedProfessionalPanel");
+const professionalAddressDisplay = document.getElementById("professionalAddressDisplay");
+const selectedWeekdaysNote = document.getElementById("selectedWeekdaysNote");
 const massageTypeField = document.getElementById("massageType");
 const dateField = document.getElementById("appointmentDate");
 const timeField = document.getElementById("appointmentTime");
 const paymentMethodField = document.getElementById("paymentMethod");
+const serviceRegionField = document.getElementById("serviceRegion");
 const confirmationCard = document.getElementById("confirmationCard");
 const confirmationTitle = document.getElementById("confirmationTitle");
 const confirmationText = document.getElementById("confirmationText");
 const confirmationWhatsappLink = document.getElementById("confirmationWhatsappLink");
-const mercadoPagoLink = document.getElementById("mercadoPagoLink");
-const appointmentsList = document.getElementById("appointmentsList");
-const adminStats = document.getElementById("adminStats");
-const adminModal = document.getElementById("adminModal");
-const adminLogin = document.getElementById("adminLogin");
-const adminContent = document.getElementById("adminContent");
-const adminPasswordField = document.getElementById("adminPassword");
-const businessWhatsappField = document.getElementById("businessWhatsapp");
-const mercadoPagoCheckoutField = document.getElementById("mercadoPagoCheckout");
-const pixKeyField = document.getElementById("pixKey");
-const businessAddressField = document.getElementById("businessAddress");
-const servicesCatalogField = document.getElementById("servicesCatalog");
-const timeSlotsConfigField = document.getElementById("timeSlotsConfig");
-const paymentMethodsConfigField = document.getElementById("paymentMethodsConfig");
-const allowedWeekdaysConfigField = document.getElementById("allowedWeekdaysConfig");
-const blockedDatesConfigField = document.getElementById("blockedDatesConfig");
-const appointmentSearchField = document.getElementById("appointmentSearch");
-const appointmentStatusFilterField = document.getElementById("appointmentStatusFilter");
-const paymentStatusFilterField = document.getElementById("paymentStatusFilter");
-const serviceRegionField = document.getElementById("serviceRegion");
+const summaryProfessional = document.getElementById("summaryProfessional");
 const summaryService = document.getElementById("summaryService");
 const summaryDuration = document.getElementById("summaryDuration");
 const summaryPrice = document.getElementById("summaryPrice");
@@ -75,8 +58,26 @@ const summaryPayment = document.getElementById("summaryPayment");
 const summaryRegion = document.getElementById("summaryRegion");
 const summaryDateTime = document.getElementById("summaryDateTime");
 
-console.log("[Flow] Site initialized");
-console.log("[Flow] App config:", APP_CONFIG);
+const appointmentsList = document.getElementById("appointmentsList");
+const professionalApplicationsList = document.getElementById("professionalApplicationsList");
+const adminStats = document.getElementById("adminStats");
+const adminModal = document.getElementById("adminModal");
+const adminLogin = document.getElementById("adminLogin");
+const adminContent = document.getElementById("adminContent");
+const adminPasswordField = document.getElementById("adminPassword");
+const businessWhatsappField = document.getElementById("businessWhatsapp");
+const pixKeyField = document.getElementById("pixKey");
+const businessAddressField = document.getElementById("businessAddress");
+const addProfessionalButton = document.getElementById("addProfessionalButton");
+const professionalsEditor = document.getElementById("professionalsEditor");
+const professionalsCatalogField = document.getElementById("professionalsCatalog");
+const blockedDatesConfigField = document.getElementById("blockedDatesConfig");
+const appointmentSearchField = document.getElementById("appointmentSearch");
+const appointmentStatusFilterField = document.getElementById("appointmentStatusFilter");
+const paymentStatusFilterField = document.getElementById("paymentStatusFilter");
+const applicationConfirmationCard = document.getElementById("applicationConfirmationCard");
+const applicationConfirmationTitle = document.getElementById("applicationConfirmationTitle");
+const applicationConfirmationText = document.getElementById("applicationConfirmationText");
 
 init().catch((error) => {
   console.error("[Flow] Failed to initialize application", error);
@@ -100,33 +101,16 @@ async function init() {
 
 function bindEvents() {
   bookingForm.addEventListener("submit", handleBookingSubmit);
+  professionalApplicationForm?.addEventListener("submit", handleProfessionalApplicationSubmit);
   dateField.addEventListener("change", enforceBusinessDaySelection);
   dateField.addEventListener("change", renderTimeOptions);
   dateField.addEventListener("change", updateBookingSummary);
-  timeField.addEventListener("change", updateBookingSummary);
   massageTypeField.addEventListener("change", updateBookingSummary);
   paymentMethodField.addEventListener("change", updateBookingSummary);
+  timeField.addEventListener("change", updateBookingSummary);
   serviceRegionField.addEventListener("input", updateBookingSummary);
+  professionalSelector.addEventListener("change", handleProfessionalChange);
 
-  document.querySelectorAll(".service-select-button").forEach((button) => {
-    button.addEventListener("click", () => {
-      selectServiceAndScroll(button.dataset.service || "");
-    });
-  });
-
-  document.querySelectorAll("[data-service-card]").forEach((card) => {
-    card.addEventListener("click", () => {
-      selectServiceAndScroll(card.dataset.serviceCard || "");
-    });
-    card.addEventListener("keydown", (event) => {
-      if (event.key === "Enter" || event.key === " ") {
-        event.preventDefault();
-        selectServiceAndScroll(card.dataset.serviceCard || "");
-      }
-    });
-  });
-
-  const openAdminButton = document.getElementById("openAdminModal");
   const closeAdminButton = document.getElementById("closeAdminModal");
   const adminLoginButton = document.getElementById("adminLoginButton");
   const saveSettingsButton = document.getElementById("saveSettingsButton");
@@ -134,43 +118,25 @@ function bindEvents() {
   const exportAppointmentsButton = document.getElementById("exportAppointmentsButton");
   const exportServedClientsButton = document.getElementById("exportServedClientsButton");
 
-  if (openAdminButton) {
-    openAdminButton.addEventListener("click", openAdminModal);
-  }
-  if (closeAdminButton) {
-    closeAdminButton.addEventListener("click", closeAdminModal);
-  }
-  if (adminLoginButton) {
-    adminLoginButton.addEventListener("click", handleAdminLogin);
-  }
-  if (saveSettingsButton) {
-    saveSettingsButton.addEventListener("click", saveSettings);
-  }
-  if (clearCompletedButton) {
-    clearCompletedButton.addEventListener("click", clearCancelledAppointments);
-  }
-  if (exportAppointmentsButton) {
-    exportAppointmentsButton.addEventListener("click", exportAppointments);
-  }
-  if (exportServedClientsButton) {
-    exportServedClientsButton.addEventListener("click", exportServedClients);
-  }
-  if (appointmentSearchField) {
-    appointmentSearchField.addEventListener("input", handleFiltersChange);
-  }
-  if (appointmentStatusFilterField) {
-    appointmentStatusFilterField.addEventListener("change", handleFiltersChange);
-  }
-  if (paymentStatusFilterField) {
-    paymentStatusFilterField.addEventListener("change", handleFiltersChange);
-  }
-  if (adminModal) {
-    adminModal.addEventListener("click", (event) => {
-      if (event.target === adminModal) {
-        closeAdminModal();
-      }
-    });
-  }
+  closeAdminButton?.addEventListener("click", closeAdminModal);
+  adminLoginButton?.addEventListener("click", handleAdminLogin);
+  saveSettingsButton?.addEventListener("click", saveSettings);
+  clearCompletedButton?.addEventListener("click", clearCancelledAppointments);
+  exportAppointmentsButton?.addEventListener("click", exportAppointments);
+  exportServedClientsButton?.addEventListener("click", exportServedClients);
+  addProfessionalButton?.addEventListener("click", handleAddProfessional);
+  appointmentSearchField?.addEventListener("input", handleFiltersChange);
+  appointmentStatusFilterField?.addEventListener("change", handleFiltersChange);
+  paymentStatusFilterField?.addEventListener("change", handleFiltersChange);
+
+  adminModal?.addEventListener("click", (event) => {
+    if (event.target === adminModal) {
+      closeAdminModal();
+    }
+  });
+
+  professionalsEditor?.addEventListener("click", handleProfessionalEditorActions);
+  professionalsEditor?.addEventListener("input", syncProfessionalsPreviewFromEditor);
 }
 
 function shouldOpenAdminFromUrl() {
@@ -188,25 +154,77 @@ function getRadioValue(name) {
   return checked ? checked.value : "";
 }
 
-function selectServiceAndScroll(selectedService) {
-  if (!selectedService) {
-    return;
-  }
+function getSelectedProfessional() {
+  const professionals = Array.isArray(state.settings.professionals) ? state.settings.professionals : [];
+  return (
+    professionals.find((item) => item.id === state.selectedProfessionalId) ||
+    professionals[0] ||
+    null
+  );
+}
 
-  const radio = massageTypeField.querySelector(`input[value="${selectedService}"]`);
+function getSelectedService() {
+  const selectedProfessional = getSelectedProfessional();
+  if (!selectedProfessional) {
+    return null;
+  }
+  const serviceName = getRadioValue("massageType");
+  return selectedProfessional.services.find((item) => item.name === serviceName) || null;
+}
+
+function handleProfessionalChange() {
+  state.selectedProfessionalId = getRadioValue("professionalId") || "";
+  renderSelectedProfessionalState();
+}
+
+function selectProfessional(professionalId, options = {}) {
+  state.selectedProfessionalId = professionalId;
+  const radio = professionalSelector.querySelector(`input[value="${professionalId}"]`);
   if (radio) {
     radio.checked = true;
   }
+
+  renderSelectedProfessionalState();
+
+  if (options.scrollToBooking) {
+    document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
+  }
+}
+
+function renderSelectedProfessionalState() {
+  const professional = getSelectedProfessional();
+  renderProfessionalCards();
+  renderSelectedProfessionalPanel();
+  renderProfessionalOptions();
+  renderServiceOptions();
+  renderPaymentMethodOptions();
+  renderTimeOptions();
+  refreshProfessionalAddressField();
+  refreshWhatsappLinks();
+  updateWeekdaysNote();
+  bookingForm.querySelectorAll("input, textarea, button, select").forEach((field) => {
+    field.disabled = !professional;
+  });
+  const formWhatsappButton = document.getElementById("formWhatsappButton");
+  if (formWhatsappButton) {
+    formWhatsappButton.classList.toggle("is-disabled", !professional);
+    formWhatsappButton.setAttribute("aria-disabled", professional ? "false" : "true");
+    formWhatsappButton.tabIndex = professional ? 0 : -1;
+  }
   updateBookingSummary();
-  document.getElementById("booking").scrollIntoView({ behavior: "smooth" });
-  console.log("[Flow] Service pre-selected:", selectedService);
 }
 
 async function handleBookingSubmit(event) {
   event.preventDefault();
 
+  const professional = getSelectedProfessional();
+  if (!professional) {
+    window.alert("Nenhuma profissional cadastrada no momento.");
+    return;
+  }
   const formData = new FormData(bookingForm);
   const bookingPayload = {
+    professionalId: professional.id,
     customerName: formData.get("customerName")?.toString().trim(),
     customerPhone: formData.get("customerPhone")?.toString().trim(),
     customerEmail: formData.get("customerEmail")?.toString().trim(),
@@ -218,11 +236,8 @@ async function handleBookingSubmit(event) {
     customerNotes: formData.get("customerNotes")?.toString().trim(),
   };
 
-  console.log("[Flow] Booking submit payload:", bookingPayload);
-
   if (!isDateSelectable(bookingPayload.appointmentDate)) {
-    window.alert("A data selecionada nao esta disponivel para atendimento.");
-    console.warn("[Flow] Unavailable booking date blocked", bookingPayload.appointmentDate);
+    window.alert("A data selecionada nao esta disponivel para a profissional escolhida.");
     return;
   }
 
@@ -232,15 +247,22 @@ async function handleBookingSubmit(event) {
       body: bookingPayload,
     });
 
-    await loadPublicData();
+    await loadAvailability();
     if (state.adminPassword) {
       await loadAdminAppointments();
       renderAdminStats();
       renderAppointments();
     }
 
-    showConfirmation(result.appointment, result.checkoutUrl);
+    showConfirmation(result.appointment || {
+      ...bookingPayload,
+      professionalName: professional.name,
+      professionalWhatsapp: professional.whatsapp,
+      professionalAddress: professional.address,
+    });
+
     bookingForm.reset();
+    selectProfessional(professional.id);
     setMinimumDate();
     updateBookingSummary();
   } catch (error) {
@@ -249,123 +271,362 @@ async function handleBookingSubmit(event) {
   }
 }
 
-function showConfirmation(appointment, checkoutUrl) {
+async function handleProfessionalApplicationSubmit(event) {
+  event.preventDefault();
+
+  const formData = new FormData(professionalApplicationForm);
+  const payload = {
+    fullName: formData.get("fullName")?.toString().trim(),
+    whatsapp: formData.get("whatsapp")?.toString().trim(),
+    email: formData.get("email")?.toString().trim(),
+    city: formData.get("city")?.toString().trim(),
+    instagram: formData.get("instagram")?.toString().trim(),
+    specialties: formData.get("specialties")?.toString().trim(),
+    message: formData.get("message")?.toString().trim(),
+    acceptedTerms: formData.get("acceptedTerms") === "on",
+    acceptedFee: formData.get("acceptedFee") === "on",
+  };
+
+  try {
+    await apiRequest("/api/professional-applications", {
+      method: "POST",
+      body: payload,
+    });
+
+    applicationConfirmationTitle.textContent = `${payload.fullName}, sua solicitacao foi recebida.`;
+    applicationConfirmationText.textContent =
+      "Agora siga para o WhatsApp para receber a orientacao de pagamento, enviar o comprovante e concluir a analise do cadastro.";
+    applicationConfirmationCard?.classList.remove("hidden");
+
+    const applicationWhatsappButton = document.getElementById("applicationWhatsappButton");
+    if (applicationWhatsappButton) {
+      applicationWhatsappButton.href = buildWhatsappUrl(
+        state.settings.businessWhatsapp,
+        `Ola, acabei de solicitar meu cadastro na plataforma ${BRAND_NAME}. Meu nome e ${payload.fullName} e estou ciente da mensalidade de R$ 150,00. Gostaria de receber a orientacao para pagamento e confirmacao pelo WhatsApp.`
+      );
+    }
+
+    professionalApplicationForm.reset();
+
+    if (state.adminPassword) {
+      await loadProfessionalApplications();
+      renderProfessionalApplications();
+    }
+  } catch (error) {
+    window.alert(error.message || "Nao foi possivel enviar sua solicitacao de cadastro.");
+  }
+}
+
+function showConfirmation(appointment) {
   const readableDate = formatDate(appointment.appointmentDate);
   const message = buildWhatsappMessage(appointment);
+  const paymentText = appointment.paymentMethod || "nao informado";
+  const selectedProfessional = getSelectedProfessional();
+  const professionalName = appointment.professionalName || selectedProfessional?.name || "a profissional";
 
-  confirmationTitle.textContent = `${appointment.customerName}, seu horario foi confirmado.`;
+  confirmationTitle.textContent = `${appointment.customerName}, sua solicitacao foi enviada para ${professionalName}.`;
   confirmationText.textContent =
-    `${appointment.massageType} agendada para ${readableDate} as ${appointment.appointmentTime}. ` +
-    `Pagamento escolhido: ${appointment.paymentMethod}. Valor: ${formatCurrency(appointment.amount)}.`;
+    `${appointment.massageType} em ${readableDate} as ${appointment.appointmentTime}. ` +
+    `Pagamento escolhido: ${paymentText}. ` +
+    `Envie o comprovante diretamente para o WhatsApp da profissional para concluir a confirmacao.`;
 
-  if (isPrepaymentMethod(appointment.paymentMethod)) {
-    confirmationText.textContent +=
-      " Pagamento antecipado obrigatorio. Envie o comprovante para confirmar definitivamente a reserva.";
-  }
-
-  if (isPixPaymentMethod(appointment.paymentMethod) && state.settings.pixKey) {
-    confirmationText.textContent += ` Chave Pix para pagamento: ${state.settings.pixKey}.`;
-  }
-
-  if (appointment.serviceRegion) {
-    confirmationText.textContent += ` Local: ${appointment.serviceRegion}.`;
-  }
-
-  confirmationWhatsappLink.href = buildWhatsappUrl(state.settings.businessWhatsapp, message);
+  confirmationWhatsappLink.href = buildWhatsappUrl(
+    appointment.professionalWhatsapp || selectedProfessional?.whatsapp || state.settings.businessWhatsapp,
+    message
+  );
   confirmationCard.classList.remove("hidden");
   confirmationCard.scrollIntoView({ behavior: "smooth", block: "center" });
+}
 
-  if (
-    isPrepaymentMethod(appointment.paymentMethod) &&
-    checkoutUrl &&
-    !isPixPaymentMethod(appointment.paymentMethod)
-  ) {
-    mercadoPagoLink.classList.remove("hidden");
-    mercadoPagoLink.href = checkoutUrl;
-    mercadoPagoLink.textContent = "Pagar agora (Mercado Pago)";
-  } else {
-    mercadoPagoLink.classList.add("hidden");
-    mercadoPagoLink.href = "#";
+function renderProfessionalCards() {
+  professionalCards.innerHTML = "";
+  const selectedProfessional = getSelectedProfessional();
+
+  if (!state.settings.professionals.length) {
+    professionalCards.innerHTML = `
+      <article class="empty-state-card luxury-frame">
+        <div class="empty-state-copy">
+          <span class="section-kicker">Em breve</span>
+          <h4>As profissionais ainda nao foram cadastradas.</h4>
+          <p>Este espaco foi preparado para receber os perfis, agendas, galerias e servicos assim que voce adicionar a primeira profissional no painel admin.</p>
+        </div>
+      </article>
+    `;
+    return;
   }
 
-  if (isPrepaymentMethod(appointment.paymentMethod)) {
-    notifyAdminPrepayment(appointment);
+  state.settings.professionals.forEach((professional) => {
+    const article = document.createElement("article");
+    article.className = `professional-card luxury-frame${professional.id === selectedProfessional.id ? " is-selected" : ""}`;
+    article.innerHTML = `
+      <button class="professional-card-button" type="button" data-professional-id="${escapeHtml(professional.id)}">
+        <img src="${escapeHtml(professional.photo || fallbackProfessionalImage())}" alt="${escapeHtml(professional.name)}" />
+        <div class="professional-card-content">
+          <span class="service-tag">${escapeHtml(professional.role)}</span>
+          <h4>${escapeHtml(professional.name)}</h4>
+          <p>${escapeHtml(professional.bio || "Atendimento personalizado.")}</p>
+          <div class="professional-meta">
+            <span>${escapeHtml(professional.neighborhood || professional.city || "Atendimento local")}</span>
+            <span>${escapeHtml(formatWeekdayList(professional.allowedWeekdays))}</span>
+          </div>
+        </div>
+      </button>
+    `;
+    professionalCards.appendChild(article);
+  });
+
+  professionalCards.querySelectorAll("[data-professional-id]").forEach((button) => {
+    button.addEventListener("click", () => {
+      selectProfessional(button.dataset.professionalId || "", { scrollToBooking: true });
+    });
+  });
+}
+
+function renderSelectedProfessionalPanel() {
+  const professional = getSelectedProfessional();
+  if (!professional) {
+    selectedProfessionalPanel.innerHTML = `
+      <div class="empty-state-copy">
+        <span class="section-kicker">Perfil indisponivel</span>
+        <h3>Nenhuma profissional cadastrada ainda.</h3>
+        <p>Assim que voce adicionar a primeira profissional no painel administrativo, esta area vai mostrar foto, galeria, detalhes dos servicos, regras de atendimento e agenda individual.</p>
+      </div>
+    `;
+    return;
+  }
+  const servicesMarkup = professional.services
+    .map(
+      (service) => `
+        <div class="selected-service-row">
+          <strong>${escapeHtml(service.name)}</strong>
+          <span>${escapeHtml(service.duration)} - ${escapeHtml(formatCurrency(service.price))}</span>
+        </div>
+      `
+    )
+    .join("");
+  const specialtiesMarkup = professional.specialties
+    .map((specialty) => `<span class="specialty-chip">${escapeHtml(specialty)}</span>`)
+    .join("");
+  const photosMarkup = (professional.galleryPhotos || [])
+    .slice(0, 6)
+    .map((url) => `<img src="${escapeHtml(url)}" alt="Galeria de ${escapeHtml(professional.name)}" />`)
+    .join("");
+  const videosMarkup = (professional.galleryVideos || [])
+    .slice(0, 2)
+    .map((url) => renderVideoEmbed(url, professional.name))
+    .join("");
+  const boundariesMarkup = (professional.boundaries || [])
+    .map((item) => `<li>${escapeHtml(item)}</li>`)
+    .join("");
+
+  selectedProfessionalPanel.innerHTML = `
+    <div class="selected-professional-media">
+      <img src="${escapeHtml(professional.photo || fallbackProfessionalImage())}" alt="${escapeHtml(professional.name)}" />
+    </div>
+    <div class="selected-professional-copy">
+      <span class="section-kicker">Profissional selecionada</span>
+      <h3>${escapeHtml(professional.name)}</h3>
+      <p class="professional-role">${escapeHtml(professional.role)}</p>
+      <p>${escapeHtml(professional.bio || "Atendimento personalizado e humano.")}</p>
+      <div class="selected-professional-block">
+        <strong>Endereco</strong>
+        <p>${escapeHtml(buildProfessionalAddress(professional))}</p>
+      </div>
+      <div class="selected-professional-block">
+        <strong>Agenda</strong>
+        <p>${escapeHtml(formatWeekdayList(professional.allowedWeekdays))} - ${escapeHtml(professional.timeSlots.join(", "))}</p>
+      </div>
+      <div class="selected-professional-block">
+        <strong>Pagamento</strong>
+        <p>${escapeHtml(professional.paymentMethods.join(", "))}</p>
+      </div>
+      <div class="selected-professional-block">
+        <strong>Detalhes do atendimento</strong>
+        <p>${escapeHtml(professional.serviceDetails || "Consulte a profissional para mais detalhes sobre tecnicas, ambiente e preparacao para a sessao.")}</p>
+      </div>
+      <div class="selected-professional-block">
+        <strong>Limites e regras de atendimento</strong>
+        <ul class="boundaries-list">${boundariesMarkup}</ul>
+      </div>
+      <div class="specialties-row">${specialtiesMarkup}</div>
+      <div class="selected-services-list">${servicesMarkup}</div>
+      ${photosMarkup ? `<div class="professional-gallery-grid">${photosMarkup}</div>` : ""}
+      ${videosMarkup ? `<div class="professional-video-grid">${videosMarkup}</div>` : ""}
+    </div>
+  `;
+}
+
+function renderProfessionalOptions() {
+  professionalSelector.innerHTML = "";
+  const selectedProfessional = getSelectedProfessional();
+
+  if (!state.settings.professionals.length) {
+    professionalSelector.innerHTML = '<div class="field-note">Nenhuma profissional cadastrada no momento.</div>';
+    return;
   }
 
-  console.log("[Flow] Confirmation displayed for booking:", appointment.id);
+  state.settings.professionals.forEach((professional) => {
+    const label = document.createElement("label");
+    label.className = "radio-card";
+    label.innerHTML = `
+      <input type="radio" name="professionalId" value="${escapeHtml(professional.id)}" ${professional.id === selectedProfessional.id ? "checked" : ""} required>
+      <div class="radio-card-content">
+        <span>${escapeHtml(professional.name)}</span>
+        <strong>${escapeHtml(professional.role)}</strong>
+      </div>
+    `;
+    professionalSelector.appendChild(label);
+  });
+}
+
+function renderServiceOptions() {
+  const professional = getSelectedProfessional();
+  if (!professional) {
+    massageTypeField.innerHTML = '<div class="field-note">Os servicos aparecerao quando a primeira profissional for cadastrada.</div>';
+    return;
+  }
+  const previousValue = getRadioValue("massageType");
+  massageTypeField.innerHTML = "";
+
+  professional.services.forEach((service) => {
+    const label = document.createElement("label");
+    label.className = "radio-card";
+    label.innerHTML = `
+      <input type="radio" name="massageType" value="${escapeHtml(service.name)}" required>
+      <div class="radio-card-content">
+        <span>${escapeHtml(service.name)}</span>
+        <strong>${escapeHtml(service.duration)} - ${escapeHtml(formatCurrency(service.price))}</strong>
+      </div>
+    `;
+    massageTypeField.appendChild(label);
+  });
+
+  const preferredServiceName = professional.services.some((service) => service.name === previousValue)
+    ? previousValue
+    : professional.services[0]?.name;
+  if (preferredServiceName) {
+    const radio = massageTypeField.querySelector(`input[value="${cssEscape(preferredServiceName)}"]`);
+    if (radio) {
+      radio.checked = true;
+    }
+  }
+}
+
+function renderPaymentMethodOptions() {
+  const professional = getSelectedProfessional();
+  if (!professional) {
+    paymentMethodField.innerHTML = '<div class="field-note">As formas de pagamento aparecerao quando houver profissional cadastrada.</div>';
+    return;
+  }
+  const previousValue = getRadioValue("paymentMethod");
+  paymentMethodField.innerHTML = "";
+
+  professional.paymentMethods.forEach((method) => {
+    const label = document.createElement("label");
+    label.className = "radio-card";
+    label.innerHTML = `
+      <input type="radio" name="paymentMethod" value="${escapeHtml(method)}" required>
+      <div class="radio-card-content">${escapeHtml(method)}</div>
+    `;
+    paymentMethodField.appendChild(label);
+  });
+
+  const preferredMethod = professional.paymentMethods.includes(previousValue)
+    ? previousValue
+    : professional.paymentMethods[0];
+  if (preferredMethod) {
+    const radio = paymentMethodField.querySelector(`input[value="${cssEscape(preferredMethod)}"]`);
+    if (radio) {
+      radio.checked = true;
+    }
+  }
 }
 
 function renderTimeOptions() {
   const selectedDate = dateField.value;
+  const professional = getSelectedProfessional();
+  if (!professional) {
+    timeField.innerHTML = '<div class="field-note">Os horarios aparecerao quando houver profissional cadastrada.</div>';
+    return;
+  }
+  const previousValue = getRadioValue("appointmentTime");
 
   if (selectedDate && !isDateSelectable(selectedDate)) {
-    timeField.innerHTML = '<div class="field-note">Selecione uma data valida</div>';
-    console.warn("[Flow] Invalid booking day selected:", selectedDate);
+    timeField.innerHTML = '<div class="field-note">Selecione uma data valida para esta profissional.</div>';
     return;
   }
 
   const occupiedTimes = new Set(
     getAvailabilityArray()
-      .filter((item) => item.appointmentDate === selectedDate && item.status !== "cancelled")
+      .filter(
+        (item) =>
+          item.professionalId === professional.id &&
+          item.appointmentDate === selectedDate &&
+          item.status !== "cancelled"
+      )
       .map((item) => item.appointmentTime)
   );
 
-  const previousValue = getRadioValue("appointmentTime");
-  timeField.innerHTML = '';
+  timeField.innerHTML = "";
 
-  state.settings.timeSlots.forEach((time) => {
+  professional.timeSlots.forEach((time) => {
     const isBooked = occupiedTimes.has(time);
     const label = document.createElement("label");
     label.className = "radio-card";
-
     label.innerHTML = `
-      <input type="radio" name="appointmentTime" value="${time}" required ${isBooked ? "disabled" : ""}>
-      <div class="radio-card-content">${time}</div>
+      <input type="radio" name="appointmentTime" value="${escapeHtml(time)}" required ${isBooked ? "disabled" : ""}>
+      <div class="radio-card-content">${escapeHtml(time)}</div>
     `;
     timeField.appendChild(label);
   });
 
   if (previousValue && !occupiedTimes.has(previousValue)) {
-    const radio = timeField.querySelector(`input[value="${previousValue}"]`);
-    if (radio) radio.checked = true;
+    const radio = timeField.querySelector(`input[value="${cssEscape(previousValue)}"]`);
+    if (radio) {
+      radio.checked = true;
+    }
   }
+}
 
-  console.log("[Flow] Time options rendered for date:", selectedDate, "occupied:", [...occupiedTimes]);
+function refreshProfessionalAddressField() {
+  const professional = getSelectedProfessional();
+  professionalAddressDisplay.value = professional ? buildProfessionalAddress(professional) : "A definir";
+}
+
+function updateWeekdaysNote() {
+  const professional = getSelectedProfessional();
+  selectedWeekdaysNote.textContent = professional
+    ? `Dias de atendimento: ${formatWeekdayList(professional.allowedWeekdays)}.`
+    : "Cadastre a primeira profissional para liberar agenda e datas.";
 }
 
 function renderAppointments() {
   appointmentsList.innerHTML = "";
   const filteredAppointments = getFilteredAppointments();
 
-  if (filteredAppointments.length === 0) {
+  if (!filteredAppointments.length) {
     appointmentsList.innerHTML =
-      '<div class="appointment-item"><div class="appointment-item-copy"><h5>Nenhum agendamento encontrado</h5><p>Ajuste os filtros ou aguarde novas reservas.</p></div></div>';
+      '<div class="appointment-item"><div class="appointment-item-copy"><h5>Nenhuma solicitacao encontrada</h5><p>Ajuste os filtros ou aguarde novos pedidos.</p></div></div>';
     return;
   }
 
   filteredAppointments.forEach((appointment) => {
     const item = document.createElement("article");
     item.className = "appointment-item";
-
-    const statusClass = getStatusClassName(appointment.status);
-    const paymentStatusClass = getPaymentStatusClassName(appointment.paymentStatus);
-    const paymentStatusLabel = getPaymentStatusLabel(appointment.paymentStatus);
-
     item.innerHTML = `
       <div class="appointment-item-copy">
         <div class="appointment-item-meta">
           <div class="appointment-payment-row">
-            <span class="status-chip ${statusClass}">${appointment.status}</span>
-            <span class="status-chip ${paymentStatusClass}">${paymentStatusLabel}</span>
+            <span class="status-chip ${getStatusClassName(appointment.status)}">${escapeHtml(getStatusLabel(appointment.status))}</span>
+            <span class="status-chip ${getPaymentStatusClassName(appointment.paymentStatus)}">${escapeHtml(getPaymentStatusLabel(appointment.paymentStatus))}</span>
           </div>
-          <h5>${appointment.customerName} - ${appointment.massageType}</h5>
-          <p>${formatDate(appointment.appointmentDate)} as ${appointment.appointmentTime}</p>
-          <p>Duracao: ${appointment.duration || getServiceDuration(appointment.massageType)}</p>
-          <p>Valor: ${formatCurrency(appointment.amount || getServiceAmount(appointment.massageType))}</p>
-          <p>Pagamento: ${appointment.paymentMethod}</p>
-          <p>Local: ${appointment.serviceRegion || state.settings.businessAddress || "Nao informado"}</p>
-          <p>WhatsApp: ${appointment.customerPhone}</p>
-          <p>${appointment.customerNotes || "Sem observacoes adicionais."}</p>
+          <h5>${escapeHtml(appointment.customerName)} - ${escapeHtml(appointment.professionalName || "Profissional")}</h5>
+          <p>${escapeHtml(appointment.massageType)} em ${escapeHtml(formatDate(appointment.appointmentDate))} as ${escapeHtml(appointment.appointmentTime)}</p>
+          <p>Local: ${escapeHtml(appointment.serviceRegion || appointment.professionalAddress || "Nao informado")}</p>
+          <p>Pagamento: ${escapeHtml(appointment.paymentMethod)} - ${escapeHtml(formatCurrency(appointment.amount || 0))}</p>
+          <p>WhatsApp cliente: ${escapeHtml(appointment.customerPhone)}</p>
+          <p>WhatsApp profissional: ${escapeHtml(appointment.professionalWhatsapp || "")}</p>
+          <p>${escapeHtml(appointment.customerNotes || "Sem observacoes adicionais.")}</p>
         </div>
       </div>
       <div class="appointment-item-actions">
@@ -375,7 +636,6 @@ function renderAppointments() {
         <button class="ghost-button" data-action="cancel" data-id="${appointment.id}" type="button">Cancelar</button>
       </div>
     `;
-
     appointmentsList.appendChild(item);
   });
 
@@ -384,79 +644,49 @@ function renderAppointments() {
       await handleAppointmentAction(button.dataset.action, button.dataset.id);
     });
   });
-
-  console.log("[Flow] Appointment list rendered");
 }
 
 async function handleAppointmentAction(action, appointmentId) {
   const appointment = state.appointments.find((item) => item.id === appointmentId);
-
   if (!appointment) {
-    console.warn("[Flow] Appointment not found for action:", action, appointmentId);
     return;
   }
-
-  console.log("[Flow] Appointment action:", action, appointment);
 
   if (action === "whatsapp") {
-    const url = buildWhatsappUrl(state.settings.businessWhatsapp, buildWhatsappMessage(appointment));
-    window.open(url, "_blank", "noopener,noreferrer");
+    window.open(
+      buildWhatsappUrl(appointment.professionalWhatsapp, buildWhatsappMessage(appointment)),
+      "_blank",
+      "noopener,noreferrer"
+    );
     return;
   }
 
-  const payload = {
-    status: action === "cancel" ? "cancelled" : "confirmed",
+  await updateAppointment(appointmentId, {
+    status:
+      action === "cancel"
+        ? "cancelled"
+        : action === "confirm" || action === "paid"
+          ? "confirmed"
+          : appointment.status,
     paymentStatus: action === "paid" ? "paid" : appointment.paymentStatus,
-  };
-
-  try {
-    await updateAppointment(appointmentId, payload);
-  } catch (error) {
-    console.error("[Flow] Failed to update appointment", error);
-    window.alert(error.message || "Nao foi possivel atualizar o agendamento.");
-  }
+  });
 }
 
 function renderAdminStats() {
   const total = state.appointments.length;
   const confirmed = state.appointments.filter((item) => item.status === "confirmed").length;
+  const awaitingPayment = state.appointments.filter((item) => item.status === "pending_payment").length;
   const cancelled = state.appointments.filter((item) => item.status === "cancelled").length;
   const paid = state.appointments.filter((item) => item.paymentStatus === "paid").length;
-  const estimatedRevenue = state.appointments
-    .filter((item) => item.status === "confirmed")
-    .reduce((totalAmount, item) => totalAmount + (item.amount || getServiceAmount(item.massageType)), 0);
-  const paidRevenue = state.appointments
-    .filter((item) => item.paymentStatus === "paid")
-    .reduce((totalAmount, item) => totalAmount + (item.amount || getServiceAmount(item.massageType)), 0);
 
   adminStats.innerHTML = `
-    <article>
-      <strong>${total}</strong>
-      <span>Total de reservas</span>
-    </article>
-    <article>
-      <strong>${confirmed}</strong>
-      <span>Confirmadas</span>
-    </article>
-    <article>
-      <strong>${cancelled}</strong>
-      <span>Canceladas</span>
-    </article>
-    <article>
-      <strong>${paid}</strong>
-      <span>Pagas</span>
-    </article>
-    <article>
-      <strong>${formatCurrency(estimatedRevenue)}</strong>
-      <span>Receita prevista</span>
-    </article>
-    <article>
-      <strong>${formatCurrency(paidRevenue)}</strong>
-      <span>Receita recebida</span>
-    </article>
+    <article><strong>${total}</strong><span>Total de pedidos</span></article>
+    <article><strong>${confirmed}</strong><span>Confirmados</span></article>
+    <article><strong>${awaitingPayment}</strong><span>Aguardando comprovante</span></article>
+    <article><strong>${cancelled}</strong><span>Cancelados</span></article>
+    <article><strong>${paid}</strong><span>Pagos</span></article>
+    <article><strong>${state.settings.professionals.length}</strong><span>Profissionais ativas</span></article>
   `;
-
-  console.log("[Flow] Admin stats updated");
 }
 
 function openAdminModal() {
@@ -464,7 +694,6 @@ function openAdminModal() {
   adminContent.classList.add("hidden");
   hydrateSettingsFields();
   adminModal.classList.remove("hidden");
-  console.log("[Flow] Admin modal opened");
 }
 
 function closeAdminModal() {
@@ -472,105 +701,135 @@ function closeAdminModal() {
   adminLogin.classList.remove("hidden");
   adminContent.classList.add("hidden");
   adminPasswordField.value = "";
-  console.log("[Flow] Admin modal closed");
 }
 
 async function handleAdminLogin() {
   state.adminPassword = adminPasswordField.value.trim();
-
   if (!state.adminPassword) {
     window.alert("Informe a senha administrativa.");
-    console.warn("[Flow] Empty admin password rejected");
     return;
   }
 
   try {
-    // Validate password first (401 = wrong password). Then load public settings — if that 500s, it is not a password issue.
     await loadAdminAppointments();
-    await loadSettings();
-    hydrateSettingsFields();
-    adminLogin.classList.add("hidden");
-    adminContent.classList.remove("hidden");
+    await loadProfessionalApplications();
     renderAdminStats();
     renderAppointments();
-    console.log("[Flow] Admin login successful");
+    renderProfessionalApplications();
+    adminLogin.classList.add("hidden");
+    adminContent.classList.remove("hidden");
   } catch (error) {
-    const msg = String((error && error.message) || error || "");
-    const isWrongPassword =
-      msg.includes("Acesso administrativo negado") || msg.includes("401");
-    const isAdminDisabled =
-      msg.includes("Painel administrativo indisponivel") || msg.includes("503");
-
-    if (isWrongPassword) {
-      state.adminPassword = "";
-      window.alert("Senha administrativa incorreta.");
-      console.warn("[Flow] Admin auth rejected", error);
-    } else if (isAdminDisabled) {
-      window.alert(
-        "Painel administrativo indisponivel no servidor (verifique ADMIN_PASSWORD no ambiente de producao)."
-      );
-      console.error("[Flow] Admin API disabled on server", error);
-    } else {
-      window.alert(
-        "Nao foi possivel carregar o painel (erro no servidor ou rede). A senha pode estar certa.\nDetalhe: " +
-          (msg || "Erro desconhecido")
-      );
-      console.error("[Flow] Admin panel load failed (not a password check)", error);
-    }
+    window.alert(error.message || "Nao foi possivel entrar no painel.");
   }
 }
 
 async function saveSettings() {
+  const professionals = collectProfessionalsFromEditor();
+
+  const payload = {
+    businessWhatsapp: sanitizeWhatsappNumber(getFieldValue(businessWhatsappField)),
+    mercadoPagoCheckout: "",
+    pixKey: getFieldValue(pixKeyField).trim(),
+    businessAddress: getFieldValue(businessAddressField).trim(),
+    blockedDates: parseBlockedDates(getFieldValue(blockedDatesConfigField)),
+    professionals,
+    services: [],
+    timeSlots: [],
+    paymentMethods: [],
+    allowedWeekdays: [],
+  };
+
   try {
-    const parsedServices = parseServicesCatalog(getFieldValue(servicesCatalogField));
-    const parsedTimeSlots = parseTimeSlots(getFieldValue(timeSlotsConfigField));
-    const parsedPaymentMethods = parsePaymentMethods(getFieldValue(paymentMethodsConfigField));
-    const parsedAllowedWeekdays = parseAllowedWeekdays(getFieldValue(allowedWeekdaysConfigField));
-    const parsedBlockedDates = parseBlockedDates(getFieldValue(blockedDatesConfigField));
-
-    const payload = {
-      businessWhatsapp: sanitizeWhatsappNumber(getFieldValue(businessWhatsappField)),
-      mercadoPagoCheckout: getFieldValue(mercadoPagoCheckoutField).trim() || DEFAULT_SETTINGS.mercadoPagoCheckout,
-      pixKey: getFieldValue(pixKeyField).trim(),
-      businessAddress: getFieldValue(businessAddressField).trim(),
-      services: parsedServices,
-      timeSlots: parsedTimeSlots,
-      paymentMethods: parsedPaymentMethods,
-      allowedWeekdays: parsedAllowedWeekdays,
-      blockedDates: parsedBlockedDates,
-    };
-
-    state.settings = await apiRequest("/api/settings", {
-      method: "PUT",
-      body: payload,
-      includeAdminPassword: true,
-    });
-    renderMassageOptions();
-    renderPaymentMethodOptions();
-    renderTimeOptions();
-    refreshWhatsappLinks();
-    updateBookingSummary();
+    state.settings = normalizeSettings(
+      await apiRequest("/api/settings", {
+        method: "PUT",
+        includeAdminPassword: true,
+        body: payload,
+      })
+    );
+    hydrateSettingsFields();
+    renderPublicUi();
+    if (state.adminPassword) {
+      await loadAdminAppointments();
+      renderAdminStats();
+      renderAppointments();
+    }
     window.alert("Configuracoes salvas com sucesso.");
-    console.log("[Flow] Settings saved:", state.settings);
   } catch (error) {
-    console.error("[Flow] Failed to save settings", error);
     window.alert(error.message || "Nao foi possivel salvar as configuracoes.");
   }
 }
 
 function hydrateSettingsFields() {
   setFieldValue(businessWhatsappField, state.settings.businessWhatsapp);
-  setFieldValue(mercadoPagoCheckoutField, state.settings.mercadoPagoCheckout);
   setFieldValue(pixKeyField, state.settings.pixKey);
   setFieldValue(businessAddressField, state.settings.businessAddress);
-  setFieldValue(
-    servicesCatalogField,
-    state.settings.services.map((service) => `${service.name}|${service.duration}|${service.price}`).join("\n")
-  );
-  setFieldValue(timeSlotsConfigField, state.settings.timeSlots.join(","));
-  setFieldValue(paymentMethodsConfigField, state.settings.paymentMethods.join("\n"));
-  setFieldValue(allowedWeekdaysConfigField, state.settings.allowedWeekdays.join(","));
   setFieldValue(blockedDatesConfigField, state.settings.blockedDates.join("\n"));
+  renderProfessionalsEditor();
+  syncProfessionalsPreviewFromEditor();
+}
+
+function renderProfessionalApplications() {
+  if (!professionalApplicationsList) {
+    return;
+  }
+
+  const applications = Array.isArray(state.professionalApplications) ? state.professionalApplications : [];
+  professionalApplicationsList.innerHTML = "";
+
+  if (!applications.length) {
+    professionalApplicationsList.innerHTML =
+      '<div class="appointment-item"><div class="appointment-item-copy"><h5>Nenhuma solicitacao de cadastro</h5><p>Quando uma profissional preencher o formulario publico, ela aparecera aqui.</p></div></div>';
+    return;
+  }
+
+  applications.forEach((application) => {
+    const item = document.createElement("article");
+    item.className = "appointment-item";
+    item.innerHTML = `
+      <div class="appointment-item-copy">
+        <div class="appointment-item-meta">
+          <div class="appointment-payment-row">
+            <span class="status-chip ${getProfessionalApplicationStatusClassName(application.status)}">${escapeHtml(getProfessionalApplicationStatusLabel(application.status))}</span>
+          </div>
+          <h5>${escapeHtml(application.fullName)}</h5>
+          <p>Enviado em: ${escapeHtml(formatDateTime(application.createdAt))}</p>
+          <p>WhatsApp: ${escapeHtml(application.whatsapp)}</p>
+          <p>E-mail: ${escapeHtml(application.email || "Nao informado")}</p>
+          <p>Cidade: ${escapeHtml(application.city || "Nao informado")}</p>
+          <p>Instagram: ${escapeHtml(application.instagram || "Nao informado")}</p>
+          <p>Especialidades: ${escapeHtml(application.specialties || "Nao informado")}</p>
+          <p>${escapeHtml(application.message || "Sem mensagem adicional.")}</p>
+          <p>Aceitou regras: ${application.acceptedTerms ? "Sim" : "Nao"} - Aceitou mensalidade: ${application.acceptedFee ? "Sim" : "Nao"}</p>
+        </div>
+      </div>
+      <div class="appointment-item-actions">
+        <a class="secondary-button" href="${buildWhatsappUrl(application.whatsapp, `Ola ${application.fullName}, recebemos sua solicitacao de cadastro na ${BRAND_NAME}.`)}" target="_blank" rel="noreferrer">WhatsApp</a>
+        <button class="secondary-button" data-application-status="pending" data-id="${application.id}" type="button">Pendente</button>
+        <button class="secondary-button" data-application-status="in_contact" data-id="${application.id}" type="button">Em contato</button>
+        <button class="secondary-button" data-application-status="approved" data-id="${application.id}" type="button">Aprovar</button>
+        <button class="ghost-button" data-application-status="blocked" data-id="${application.id}" type="button">Bloquear</button>
+      </div>
+    `;
+    professionalApplicationsList.appendChild(item);
+  });
+
+  professionalApplicationsList.querySelectorAll("button[data-application-status]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await handleProfessionalApplicationAction(button.dataset.applicationStatus, button.dataset.id);
+    });
+  });
+}
+
+async function handleProfessionalApplicationAction(nextStatus, applicationId) {
+  const application = state.professionalApplications.find((item) => item.id === applicationId);
+  if (!application || application.status === nextStatus) {
+    return;
+  }
+
+  await updateProfessionalApplication(applicationId, {
+    status: nextStatus,
+  });
 }
 
 async function clearCancelledAppointments() {
@@ -583,23 +842,25 @@ async function clearCancelledAppointments() {
     renderAdminStats();
     renderAppointments();
     renderTimeOptions();
-    console.log("[Flow] Cancelled appointments cleared");
   } catch (error) {
-    console.error("[Flow] Failed to clear cancelled appointments", error);
     window.alert(error.message || "Nao foi possivel remover os cancelados.");
   }
 }
 
 function refreshWhatsappLinks() {
-  const genericMessage =
-    `Ola, gostaria de saber mais sobre os atendimentos da ${BRAND_NAME}.`;
-  const url = buildWhatsappUrl(state.settings.businessWhatsapp, genericMessage);
+  const selectedProfessional = getSelectedProfessional();
+  const genericMessage = selectedProfessional
+    ? `Ola, gostaria de saber mais sobre os atendimentos da ${selectedProfessional.name}.`
+    : `Ola, gostaria de saber mais sobre os atendimentos da ${BRAND_NAME}.`;
+  const url = buildWhatsappUrl(
+    selectedProfessional?.whatsapp || state.settings.businessWhatsapp,
+    genericMessage
+  );
 
   document.getElementById("heroWhatsappButton").href = url;
   document.getElementById("formWhatsappButton").href = url;
   document.getElementById("floatingWhatsappButton").href = url;
-
-  console.log("[Flow] WhatsApp links refreshed:", url);
+  refreshApplicationWhatsappLink();
 }
 
 function handleFiltersChange() {
@@ -607,7 +868,6 @@ function handleFiltersChange() {
   state.filters.status = appointmentStatusFilterField.value;
   state.filters.paymentStatus = paymentStatusFilterField.value;
   renderAppointments();
-  console.log("[Flow] Filters updated:", state.filters);
 }
 
 function getFilteredAppointments() {
@@ -615,7 +875,7 @@ function getFilteredAppointments() {
     const matchesSearch =
       !state.filters.search ||
       appointment.customerName.toLowerCase().includes(state.filters.search) ||
-      appointment.massageType.toLowerCase().includes(state.filters.search) ||
+      appointment.professionalName.toLowerCase().includes(state.filters.search) ||
       appointment.customerPhone.toLowerCase().includes(state.filters.search);
 
     const matchesStatus =
@@ -630,86 +890,58 @@ function getFilteredAppointments() {
 }
 
 function exportAppointments() {
-  const exportData = JSON.stringify(state.appointments, null, 2);
-  const blob = new Blob([exportData], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const anchor = document.createElement("a");
-
-  anchor.href = url;
-  anchor.download = "flow-terapias-agendamentos.json";
-  anchor.click();
-  URL.revokeObjectURL(url);
-
-  console.log("[Flow] Appointments exported");
+  downloadJson(state.appointments, "flow-terapias-agendamentos.json");
 }
 
 function exportServedClients() {
-  const servedClients = state.appointments
-    .filter((appointment) => appointment.status === "confirmed")
-    .map((appointment) => ({
-      customerName: appointment.customerName,
-      customerPhone: appointment.customerPhone,
-      customerEmail: appointment.customerEmail,
-      massageType: appointment.massageType,
-      appointmentDate: appointment.appointmentDate,
-      appointmentTime: appointment.appointmentTime,
-      paymentMethod: appointment.paymentMethod,
-      paymentStatus: appointment.paymentStatus,
-      amount: appointment.amount,
-      duration: appointment.duration,
-      serviceRegion: appointment.serviceRegion,
-      customerNotes: appointment.customerNotes,
-      createdAt: appointment.createdAt,
-    }));
+  downloadJson(
+    state.appointments.filter((appointment) => appointment.status === "confirmed"),
+    "flow-terapias-atendimentos-confirmados.json"
+  );
+}
 
-  const exportData = JSON.stringify(servedClients, null, 2);
-  const blob = new Blob([exportData], { type: "application/json" });
+function downloadJson(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
-
   anchor.href = url;
-  anchor.download = "flow-terapias-clientes-atendidos.json";
+  anchor.download = filename;
   anchor.click();
   URL.revokeObjectURL(url);
-
-  console.log("[Flow] Served clients exported:", servedClients.length);
 }
 
 async function loadPublicData() {
   await loadSettings();
-  try {
-    await loadAvailability();
-  } catch (error) {
-    console.error("[Flow] loadAvailability failed; continuing with empty slots", error);
-    state.availability = [];
-  }
-  renderMassageOptions();
-  renderPaymentMethodOptions();
-  refreshWhatsappLinks();
-  renderTimeOptions();
+  await loadAvailability();
+  renderPublicUi();
 }
 
 async function loadSettings() {
   const apiSettings = await apiRequest("/api/settings");
   state.settings = normalizeSettings(apiSettings);
-  console.log("[Flow] Loaded settings from API:", state.settings);
+  if (!state.settings.professionals.some((item) => item.id === state.selectedProfessionalId)) {
+    state.selectedProfessionalId = state.settings.professionals[0]?.id || "";
+  }
   return state.settings;
 }
 
 async function loadAvailability() {
-  const apiAvailability = await apiRequest("/api/appointments/availability");
-  state.availability = Array.isArray(apiAvailability) ? apiAvailability : [];
-  console.log("[Flow] Loaded availability:", state.availability);
+  state.availability = await apiRequest("/api/appointments/availability");
   return state.availability;
 }
 
 async function loadAdminAppointments() {
-  const apiAppointments = await apiRequest("/api/appointments", {
+  state.appointments = await apiRequest("/api/appointments", {
     includeAdminPassword: true,
   });
-  state.appointments = Array.isArray(apiAppointments) ? apiAppointments : [];
-  console.log("[Flow] Loaded admin appointments:", state.appointments);
   return state.appointments;
+}
+
+async function loadProfessionalApplications() {
+  state.professionalApplications = await apiRequest("/api/professional-applications", {
+    includeAdminPassword: true,
+  });
+  return state.professionalApplications;
 }
 
 async function updateAppointment(appointmentId, payload) {
@@ -724,27 +956,250 @@ async function updateAppointment(appointmentId, payload) {
   renderTimeOptions();
 }
 
-function setMinimumDate() {
-  const today = new Date();
-  const minDate = today.toISOString().split("T")[0];
-  dateField.min = minDate;
-  console.log("[Flow] Min date set:", minDate);
+async function updateProfessionalApplication(applicationId, payload) {
+  await apiRequest(`/api/professional-applications/${applicationId}`, {
+    method: "PATCH",
+    includeAdminPassword: true,
+    body: payload,
+  });
+  await loadProfessionalApplications();
+  renderProfessionalApplications();
 }
 
-function enforceBusinessDaySelection() {
-  if (!dateField.value) {
+function renderPublicUi() {
+  renderSelectedProfessionalState();
+}
+
+function refreshApplicationWhatsappLink() {
+  const button = document.getElementById("applicationWhatsappButton");
+  if (!button) {
     return;
   }
 
-  if (isDateSelectable(dateField.value)) {
+  button.href = buildWhatsappUrl(
+    state.settings.businessWhatsapp,
+    `Ola, tenho interesse em me cadastrar como profissional na plataforma ${BRAND_NAME}. Gostaria de receber as orientacoes sobre regras, mensalidade e confirmacao do pagamento.`
+  );
+}
+
+function handleAddProfessional() {
+  const editorCard = buildProfessionalEditorCard(createEmptyProfessional(state.settings.professionals.length + 1));
+  professionalsEditor.appendChild(editorCard);
+  syncProfessionalsPreviewFromEditor();
+  editorCard.scrollIntoView({ behavior: "smooth", block: "nearest" });
+}
+
+function handleProfessionalEditorActions(event) {
+  const actionButton = event.target.closest("[data-professional-editor-action]");
+  if (!actionButton) {
+    return;
+  }
+
+  const card = actionButton.closest(".professional-editor-card");
+  if (!card) {
+    return;
+  }
+
+  if (actionButton.dataset.professionalEditorAction === "remove") {
+    card.remove();
+    syncProfessionalsPreviewFromEditor();
+  }
+
+  if (actionButton.dataset.professionalEditorAction === "duplicate") {
+    const professional = readProfessionalFromCard(card);
+    const copy = {
+      ...professional,
+      id: `${professional.id || "profissional"}-copia`,
+      name: professional.name ? `${professional.name} Copia` : "Nova profissional",
+    };
+    card.insertAdjacentElement("afterend", buildProfessionalEditorCard(copy));
+    syncProfessionalsPreviewFromEditor();
+  }
+}
+
+function renderProfessionalsEditor() {
+  if (!professionalsEditor) {
+    return;
+  }
+
+  professionalsEditor.innerHTML = "";
+  state.settings.professionals.forEach((professional) => {
+    professionalsEditor.appendChild(buildProfessionalEditorCard(professional));
+  });
+}
+
+function buildProfessionalEditorCard(professional) {
+  const article = document.createElement("article");
+  article.className = "professional-editor-card luxury-frame";
+  article.innerHTML = `
+    <div class="professional-editor-head">
+      <div>
+        <span class="section-kicker">Perfil profissional</span>
+        <h4>${escapeHtml(professional.name || "Nova profissional")}</h4>
+      </div>
+      <div class="admin-inline-actions">
+        <button class="secondary-button" data-professional-editor-action="duplicate" type="button">Duplicar</button>
+        <button class="ghost-button" data-professional-editor-action="remove" type="button">Remover</button>
+      </div>
+    </div>
+    <div class="form-grid compact-grid">
+      <label>
+        ID publico
+        <input data-professional-field="id" type="text" value="${escapeAttribute(professional.id || "")}" placeholder="ana-cristina" />
+      </label>
+      <label>
+        Nome
+        <input data-professional-field="name" type="text" value="${escapeAttribute(professional.name || "")}" placeholder="Ana Cristina" />
+      </label>
+      <label>
+        Cargo ou chamada
+        <input data-professional-field="role" type="text" value="${escapeAttribute(professional.role || "")}" placeholder="Massoterapeuta especialista em relaxamento" />
+      </label>
+      <label>
+        WhatsApp
+        <input data-professional-field="whatsapp" type="text" value="${escapeAttribute(professional.whatsapp || "")}" placeholder="5542999999999" />
+      </label>
+      <label>
+        Endereco
+        <input data-professional-field="address" type="text" value="${escapeAttribute(professional.address || "")}" placeholder="Rua Exemplo, 123" />
+      </label>
+      <label>
+        Bairro
+        <input data-professional-field="neighborhood" type="text" value="${escapeAttribute(professional.neighborhood || "")}" placeholder="Centro" />
+      </label>
+      <label>
+        Cidade
+        <input data-professional-field="city" type="text" value="${escapeAttribute(professional.city || "")}" placeholder="Ponta Grossa - PR" />
+      </label>
+      <label>
+        Foto (URL)
+        <input data-professional-field="photo" type="url" value="${escapeAttribute(professional.photo || "")}" placeholder="https://..." />
+      </label>
+      <label class="full-width">
+        Fotos do perfil
+        <textarea data-professional-field="galleryPhotos" rows="4" placeholder="Uma URL por linha, ate 6 fotos">${escapeHtml((professional.galleryPhotos || []).join("\n"))}</textarea>
+      </label>
+      <label class="full-width">
+        Videos do perfil
+        <textarea data-professional-field="galleryVideos" rows="3" placeholder="Uma URL por linha, ate 2 videos">${escapeHtml((professional.galleryVideos || []).join("\n"))}</textarea>
+      </label>
+      <label class="full-width">
+        Bio comercial
+        <textarea data-professional-field="bio" rows="3" placeholder="Resumo do estilo de atendimento e do diferencial da profissional">${escapeHtml(professional.bio || "")}</textarea>
+      </label>
+      <label class="full-width">
+        Detalhes dos servicos
+        <textarea data-professional-field="serviceDetails" rows="4" placeholder="Explique tecnicas, foco do atendimento, ambiente, preparacao e observacoes relevantes">${escapeHtml(professional.serviceDetails || "")}</textarea>
+      </label>
+      <label class="full-width">
+        Especialidades
+        <textarea data-professional-field="specialties" rows="2" placeholder="Massagem relaxante, drenagem, aromaterapia">${escapeHtml((professional.specialties || []).join(", "))}</textarea>
+      </label>
+      <label class="full-width">
+        Limites e regras de atendimento
+        <textarea data-professional-field="boundaries" rows="4" placeholder="Uma regra por linha">${escapeHtml((professional.boundaries || DEFAULT_BOUNDARY_OPTIONS).join("\n"))}</textarea>
+      </label>
+      <label class="full-width">
+        Servicos
+        <textarea data-professional-field="services" rows="5" placeholder="Massagem Relaxante Premium|60 min|140&#10;Drenagem Linfatica|60 min|160">${escapeHtml(serializeServices(professional.services))}</textarea>
+      </label>
+      <label>
+        Horarios
+        <textarea data-professional-field="timeSlots" rows="3" placeholder="09:00,10:30,13:30">${escapeHtml((professional.timeSlots || []).join(", "))}</textarea>
+      </label>
+      <label>
+        Formas de pagamento
+        <textarea data-professional-field="paymentMethods" rows="3" placeholder="Pix, Transferencia, Dinheiro no atendimento">${escapeHtml((professional.paymentMethods || []).join(", "))}</textarea>
+      </label>
+      <label class="full-width">
+        Dias de atendimento
+        <div class="weekday-checkboxes">
+          ${WEEKDAY_LABELS.map((label, dayIndex) => `
+            <label class="weekday-check">
+              <input data-professional-field="allowedWeekdays" type="checkbox" value="${dayIndex}" ${(professional.allowedWeekdays || []).includes(dayIndex) ? "checked" : ""} />
+              <span>${label}</span>
+            </label>
+          `).join("")}
+        </div>
+      </label>
+    </div>
+  `;
+  return article;
+}
+
+function collectProfessionalsFromEditor() {
+  const cards = professionalsEditor ? [...professionalsEditor.querySelectorAll(".professional-editor-card")] : [];
+  return cards
+    .map((card) => readProfessionalFromCard(card))
+    .filter(
+      (professional) =>
+        professional.id &&
+        professional.name &&
+        professional.whatsapp &&
+        professional.services.length &&
+        professional.timeSlots.length &&
+        professional.paymentMethods.length &&
+        professional.allowedWeekdays.length
+    );
+}
+
+function readProfessionalFromCard(card) {
+  const getValue = (field) =>
+    String(card.querySelector(`[data-professional-field="${field}"]`)?.value || "").trim();
+  const allowedWeekdays = [...card.querySelectorAll('[data-professional-field="allowedWeekdays"]:checked')]
+    .map((input) => Number(input.value))
+    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
+
+  return {
+    id: sanitizeSlug(getValue("id") || getValue("name")),
+    name: getValue("name"),
+    role: getValue("role"),
+    whatsapp: sanitizeWhatsappNumber(getValue("whatsapp")),
+    address: getValue("address"),
+    neighborhood: getValue("neighborhood"),
+    city: getValue("city"),
+    photo: getValue("photo"),
+    galleryPhotos: parseLineSeparatedList(getValue("galleryPhotos")).slice(0, 6),
+    galleryVideos: parseLineSeparatedList(getValue("galleryVideos")).slice(0, 2),
+    bio: getValue("bio"),
+    serviceDetails: getValue("serviceDetails"),
+    specialties: parseCommaSeparatedList(getValue("specialties")),
+    boundaries: parseLineSeparatedList(getValue("boundaries")),
+    services: parseServicesTextarea(getValue("services")),
+    timeSlots: parseCommaSeparatedList(getValue("timeSlots")).filter((slot) => /^\d{2}:\d{2}$/.test(slot)),
+    paymentMethods: parseCommaSeparatedList(getValue("paymentMethods")),
+    allowedWeekdays,
+  };
+}
+
+function syncProfessionalsPreviewFromEditor() {
+  const professionals = collectProfessionalsFromEditor();
+  setFieldValue(professionalsCatalogField, JSON.stringify(professionals, null, 2));
+
+  const nameFields = professionalsEditor ? professionalsEditor.querySelectorAll('[data-professional-field="name"]') : [];
+  const cards = professionalsEditor ? professionalsEditor.querySelectorAll(".professional-editor-card") : [];
+  nameFields.forEach((input, index) => {
+    const title = cards[index]?.querySelector(".professional-editor-head h4");
+    if (title) {
+      title.textContent = input.value.trim() || "Nova profissional";
+    }
+  });
+}
+
+function setMinimumDate() {
+  const today = new Date();
+  dateField.min = today.toISOString().split("T")[0];
+}
+
+function enforceBusinessDaySelection() {
+  if (!dateField.value || isDateSelectable(dateField.value)) {
     return;
   }
 
   dateField.value = "";
-  timeField.innerHTML = '';
+  timeField.innerHTML = "";
   updateBookingSummary();
-  window.alert("Selecione uma data disponivel para atendimento.");
-  console.warn("[Flow] Unavailable date selected and cleared");
+  window.alert("Selecione uma data disponivel para a profissional escolhida.");
 }
 
 function isDateSelectable(dateString) {
@@ -752,58 +1207,34 @@ function isDateSelectable(dateString) {
     return false;
   }
 
+  const professional = getSelectedProfessional();
+  if (!professional) {
+    return false;
+  }
   const date = new Date(`${dateString}T00:00:00`);
-  return state.settings.allowedWeekdays.includes(date.getDay()) && !state.settings.blockedDates.includes(dateString);
+  return professional.allowedWeekdays.includes(date.getDay()) && !state.settings.blockedDates.includes(dateString);
 }
 
 function buildWhatsappMessage(appointment) {
-  const addressText = appointment.serviceRegion || state.settings.businessAddress;
-  const pixText =
-    isPixPaymentMethod(appointment.paymentMethod) && state.settings.pixKey
-      ? ` Chave Pix: ${state.settings.pixKey}.`
-      : "";
-
+  const professional = getSelectedProfessional();
+  if (!professional && !appointment.professionalName) {
+    return `Ola, gostaria de saber mais sobre os atendimentos da ${BRAND_NAME}.`;
+  }
+  const professionalName = appointment.professionalName || professional.name;
+  const professionalAddress = appointment.professionalAddress || professional.address;
   return (
-    `Ola ${appointment.customerName}, seu agendamento na ${BRAND_NAME} foi confirmado para ` +
-    `${formatDate(appointment.appointmentDate)} as ${appointment.appointmentTime}. ` +
-    `Servico: ${appointment.massageType}. Duracao: ${appointment.duration || getServiceDuration(appointment.massageType)}. ` +
-    `Valor: ${formatCurrency(appointment.amount || getServiceAmount(appointment.massageType))}. ` +
-    `Pagamento: ${appointment.paymentMethod}.` +
-    `${addressText ? ` Local: ${addressText}.` : ""}${pixText}`
+    `Ola ${professionalName}, acabei de solicitar meu atendimento pelo site ${BRAND_NAME}. ` +
+    `Cliente: ${appointment.customerName}. ` +
+    `Servico: ${appointment.massageType}. ` +
+    `Data: ${formatDate(appointment.appointmentDate)} as ${appointment.appointmentTime}. ` +
+    `Pagamento: ${appointment.paymentMethod}. ` +
+    `Local informado: ${appointment.serviceRegion || professionalAddress}. ` +
+    `Vou enviar meu comprovante por aqui.`
   );
 }
 
 function buildWhatsappUrl(phone, message) {
-  const sanitizedPhone = sanitizeWhatsappNumber(phone);
-  return `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
-}
-
-function notifyAdminPrepayment(appointment) {
-  const alertMessage =
-    "Pagamento antecipado solicitado. Um aviso para o WhatsApp administrativo sera aberto agora.";
-  window.alert(alertMessage);
-
-  const adminMessage =
-    `Novo pedido de pagamento antecipado - ${BRAND_NAME}.\n` +
-    `Cliente: ${appointment.customerName}\n` +
-    `WhatsApp: ${appointment.customerPhone}\n` +
-    `Servico: ${appointment.massageType}\n` +
-    `Data: ${formatDate(appointment.appointmentDate)}\n` +
-    `Horario: ${appointment.appointmentTime}\n` +
-    `Pagamento: ${appointment.paymentMethod}\n` +
-    `Valor: ${formatCurrency(appointment.amount)}.`;
-
-  const adminUrl = buildWhatsappUrl(ADMIN_ALERT_WHATSAPP, adminMessage);
-  window.open(adminUrl, "_blank", "noopener,noreferrer");
-  console.log("[Flow] Admin prepayment alert sent:", appointment.id);
-}
-
-function isPrepaymentMethod(paymentMethod) {
-  if (isPixPaymentMethod(paymentMethod)) {
-    return true;
-  }
-
-  return PREPAYMENT_METHODS.has(paymentMethod);
+  return `https://wa.me/${sanitizeWhatsappNumber(phone)}?text=${encodeURIComponent(message)}`;
 }
 
 function sanitizeWhatsappNumber(phone) {
@@ -823,120 +1254,18 @@ function formatCurrency(amount) {
   return new Intl.NumberFormat("pt-BR", {
     style: "currency",
     currency: "BRL",
-  }).format(amount || 0);
+  }).format(Number(amount || 0));
 }
 
-function getServiceAmount(serviceName) {
-  const service = state.settings.services.find((item) => item.name === serviceName);
-  return service?.price || 0;
+function formatWeekdayList(days) {
+  return (Array.isArray(days) ? days : [])
+    .map((day) => WEEKDAY_LABELS[Number(day)] || "")
+    .filter(Boolean)
+    .join(", ");
 }
 
-function getServiceDuration(serviceName) {
-  const service = state.settings.services.find((item) => item.name === serviceName);
-  return service?.duration || "Sob consulta";
-}
-
-function renderMassageOptions() {
-  const previousValue = getRadioValue("massageType");
-  massageTypeField.innerHTML = '';
-
-  state.settings.services.forEach((service) => {
-    const label = document.createElement("label");
-    label.className = "radio-card";
-
-    label.innerHTML = `
-      <input type="radio" name="massageType" value="${service.name}" required>
-      <div class="radio-card-content">
-        <span style="display:block;">${service.name}</span>
-        <strong style="color:var(--gold-soft);font-size:0.85rem;margin-top:6px;display:block;">${formatCurrency(service.price)}</strong>
-      </div>
-    `;
-    massageTypeField.appendChild(label);
-  });
-
-  if (previousValue && state.settings.services.some((service) => service.name === previousValue)) {
-    const radio = massageTypeField.querySelector(`input[value="${previousValue}"]`);
-    if (radio) radio.checked = true;
-  }
-}
-
-function renderPaymentMethodOptions() {
-  const previousValue = getRadioValue("paymentMethod");
-  paymentMethodField.innerHTML = "";
-
-  const methods =
-    Array.isArray(state.settings.paymentMethods) && state.settings.paymentMethods.length
-      ? state.settings.paymentMethods
-      : DEFAULT_SETTINGS.paymentMethods;
-
-  methods.forEach((method) => {
-    const label = document.createElement("label");
-    label.className = "radio-card";
-
-    label.innerHTML = `
-      <input type="radio" name="paymentMethod" value="${method}" required>
-      <div class="radio-card-content">${method}</div>
-    `;
-    paymentMethodField.appendChild(label);
-  });
-
-  if (previousValue && methods.includes(previousValue)) {
-    const radio = paymentMethodField.querySelector(`input[value="${previousValue}"]`);
-    if (radio) {
-      radio.checked = true;
-    }
-  }
-
-  if (!methods.length) {
-    console.warn("[Flow] No payment methods to render; check admin settings.");
-  }
-}
-
-function parseServicesCatalog(value) {
-  const lines = value
-    .split("\n")
-    .map((line) => line.trim())
-    .filter(Boolean);
-  const services = lines
-    .map((line) => {
-      const [nameRaw, durationRaw, priceRaw] = line.split("|");
-      const name = String(nameRaw || "").trim();
-      const duration = String(durationRaw || "").trim();
-      const price = Number(String(priceRaw || "").replace(",", "."));
-
-      if (!name || !duration || !Number.isFinite(price) || price < 0) {
-        return null;
-      }
-
-      return { name, duration, price };
-    })
-    .filter(Boolean);
-
-  return services.length ? services : DEFAULT_SETTINGS.services;
-}
-
-function parseTimeSlots(value) {
-  const slots = value
-    .split(",")
-    .map((slot) => slot.trim())
-    .filter((slot) => /^\d{2}:\d{2}$/.test(slot));
-  return slots.length ? [...new Set(slots)] : DEFAULT_SETTINGS.timeSlots;
-}
-
-function parsePaymentMethods(value) {
-  const methods = value
-    .split("\n")
-    .map((method) => method.trim())
-    .filter(Boolean);
-  return methods.length ? [...new Set(methods)] : DEFAULT_SETTINGS.paymentMethods;
-}
-
-function parseAllowedWeekdays(value) {
-  const weekdays = value
-    .split(",")
-    .map((day) => Number(day.trim()))
-    .filter((day) => Number.isInteger(day) && day >= 0 && day <= 6);
-  return weekdays.length ? [...new Set(weekdays)] : DEFAULT_SETTINGS.allowedWeekdays;
+function buildProfessionalAddress(professional) {
+  return [professional.address, professional.neighborhood, professional.city].filter(Boolean).join(" - ");
 }
 
 function parseBlockedDates(value) {
@@ -947,50 +1276,74 @@ function parseBlockedDates(value) {
 }
 
 function normalizeSettings(settings) {
+  const professionals = sanitizeProfessionalsArray(settings?.professionals);
   return {
     businessWhatsapp: String(settings?.businessWhatsapp || DEFAULT_SETTINGS.businessWhatsapp),
-    mercadoPagoCheckout: String(settings?.mercadoPagoCheckout || DEFAULT_SETTINGS.mercadoPagoCheckout),
+    mercadoPagoCheckout: String(settings?.mercadoPagoCheckout || ""),
     pixKey: String(settings?.pixKey || ""),
     businessAddress: String(settings?.businessAddress || ""),
-    services: sanitizeServicesArray(settings?.services),
-    timeSlots: sanitizeTimeSlotsArray(settings?.timeSlots),
-    paymentMethods: sanitizePaymentMethodsArray(settings?.paymentMethods),
-    allowedWeekdays: sanitizeAllowedWeekdaysArray(settings?.allowedWeekdays),
     blockedDates: sanitizeBlockedDatesArray(settings?.blockedDates),
+    professionals,
   };
 }
 
-function sanitizeServicesArray(services) {
-  const value = Array.isArray(services) ? services : [];
-  const normalized = value
-    .map((service) => ({
-      name: String(service?.name || "").trim(),
-      duration: String(service?.duration || "").trim(),
-      price: Number(service?.price || 0),
+function sanitizeProfessionalsArray(value) {
+  const professionals = Array.isArray(value) ? value : [];
+  const normalized = professionals
+    .map((professional) => ({
+      id: String(professional?.id || "").trim(),
+      name: String(professional?.name || "").trim(),
+      role: String(professional?.role || "Profissional").trim(),
+      whatsapp: sanitizeWhatsappNumber(professional?.whatsapp || DEFAULT_SETTINGS.businessWhatsapp),
+      address: String(professional?.address || "").trim(),
+      neighborhood: String(professional?.neighborhood || "").trim(),
+      city: String(professional?.city || "").trim(),
+      bio: String(professional?.bio || "").trim(),
+      photo: String(professional?.photo || "").trim(),
+      galleryPhotos: Array.isArray(professional?.galleryPhotos)
+        ? professional.galleryPhotos.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 6)
+        : [],
+      galleryVideos: Array.isArray(professional?.galleryVideos)
+        ? professional.galleryVideos.map((item) => String(item || "").trim()).filter(Boolean).slice(0, 2)
+        : [],
+      specialties: Array.isArray(professional?.specialties)
+        ? professional.specialties.map((item) => String(item || "").trim()).filter(Boolean)
+        : [],
+      serviceDetails: String(professional?.serviceDetails || "").trim(),
+      boundaries: Array.isArray(professional?.boundaries)
+        ? professional.boundaries.map((item) => String(item || "").trim()).filter(Boolean)
+        : DEFAULT_BOUNDARY_OPTIONS,
+      services: Array.isArray(professional?.services)
+        ? professional.services
+            .map((service) => ({
+              name: String(service?.name || "").trim(),
+              duration: String(service?.duration || "").trim(),
+              price: Number(service?.price || 0),
+            }))
+            .filter((service) => service.name && service.duration)
+        : [],
+      timeSlots: Array.isArray(professional?.timeSlots)
+        ? professional.timeSlots.map((slot) => String(slot || "").trim()).filter(Boolean)
+        : [],
+      paymentMethods: Array.isArray(professional?.paymentMethods)
+        ? professional.paymentMethods.map((method) => String(method || "").trim()).filter(Boolean)
+        : [],
+      allowedWeekdays: Array.isArray(professional?.allowedWeekdays)
+        ? professional.allowedWeekdays.map((day) => Number(day)).filter((day) => day >= 0 && day <= 6)
+        : [],
     }))
-    .filter((service) => service.name && service.duration && Number.isFinite(service.price) && service.price >= 0);
+    .filter(
+      (professional) =>
+        professional.id &&
+        professional.name &&
+        professional.whatsapp &&
+        professional.services.length &&
+        professional.timeSlots.length &&
+        professional.paymentMethods.length &&
+        professional.allowedWeekdays.length
+    );
 
-  return normalized.length ? normalized : DEFAULT_SETTINGS.services;
-}
-
-function sanitizeTimeSlotsArray(timeSlots) {
-  const value = Array.isArray(timeSlots) ? timeSlots : [];
-  const normalized = [...new Set(value.map((slot) => String(slot || "").trim()))].filter((slot) =>
-    /^\d{2}:\d{2}$/.test(slot)
-  );
-  return normalized.length ? normalized : DEFAULT_SETTINGS.timeSlots;
-}
-
-function sanitizePaymentMethodsArray(paymentMethods) {
-  const value = Array.isArray(paymentMethods) ? paymentMethods : [];
-  const normalized = [...new Set(value.map((method) => String(method || "").trim()).filter(Boolean))];
-  return normalized.length ? normalized : DEFAULT_SETTINGS.paymentMethods;
-}
-
-function sanitizeAllowedWeekdaysArray(allowedWeekdays) {
-  const value = Array.isArray(allowedWeekdays) ? allowedWeekdays : [];
-  const normalized = [...new Set(value.map((day) => Number(day)).filter((day) => Number.isInteger(day) && day >= 0 && day <= 6))];
-  return normalized.length ? normalized : DEFAULT_SETTINGS.allowedWeekdays;
+  return normalized;
 }
 
 function sanitizeBlockedDatesArray(blockedDates) {
@@ -1000,18 +1353,91 @@ function sanitizeBlockedDatesArray(blockedDates) {
   );
 }
 
+function parseCommaSeparatedList(value) {
+  return value
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseLineSeparatedList(value) {
+  return value
+    .split("\n")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+function parseServicesTextarea(value) {
+  return value
+    .split("\n")
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const [nameRaw, durationRaw, priceRaw] = line.split("|");
+      const name = String(nameRaw || "").trim();
+      const duration = String(durationRaw || "").trim();
+      const price = Number(String(priceRaw || "").trim().replace(",", "."));
+      if (!name || !duration || !Number.isFinite(price)) {
+        return null;
+      }
+      return { name, duration, price };
+    })
+    .filter(Boolean);
+}
+
+function serializeServices(services) {
+  return (Array.isArray(services) ? services : [])
+    .map((service) => `${service.name}|${service.duration}|${service.price}`)
+    .join("\n");
+}
+
+function createEmptyProfessional(index) {
+  return {
+    id: `profissional-${index}`,
+    name: "",
+    role: "",
+    whatsapp: state.settings.businessWhatsapp || DEFAULT_SETTINGS.businessWhatsapp,
+    address: "",
+    neighborhood: "",
+    city: "",
+    bio: "",
+    photo: "",
+    galleryPhotos: [],
+    galleryVideos: [],
+    specialties: [],
+    serviceDetails: "",
+    boundaries: [...DEFAULT_BOUNDARY_OPTIONS],
+    services: [],
+    timeSlots: [],
+    paymentMethods: ["Pix"],
+    allowedWeekdays: [1, 2, 3, 4, 5],
+  };
+}
+
+function sanitizeSlug(value) {
+  return String(value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+}
+
 function updateBookingSummary() {
-  const selectedService = getRadioValue("massageType");
+  const professional = getSelectedProfessional();
+  const selectedService = getSelectedService();
   const selectedDate = dateField.value;
   const selectedTime = getRadioValue("appointmentTime");
   const selectedPayment = getRadioValue("paymentMethod");
   const selectedRegion = serviceRegionField.value.trim();
 
-  summaryService.textContent = selectedService || "Confira seu agendamento";
-  summaryDuration.textContent = selectedService ? getServiceDuration(selectedService) : "-";
-  summaryPrice.textContent = selectedService ? formatCurrency(getServiceAmount(selectedService)) : "-";
+  summaryProfessional.textContent = professional?.name || "Nenhuma profissional cadastrada";
+  summaryService.textContent = selectedService?.name || "-";
+  summaryDuration.textContent = selectedService?.duration || "-";
+  summaryPrice.textContent = selectedService ? formatCurrency(selectedService.price) : "-";
   summaryPayment.textContent = selectedPayment || "-";
-  summaryRegion.textContent = selectedRegion || state.settings.businessAddress || "-";
+  summaryRegion.textContent = selectedRegion || (professional ? buildProfessionalAddress(professional) : "-") || "-";
 
   if (selectedDate && selectedTime) {
     summaryDateTime.textContent = `${formatDate(selectedDate)} as ${selectedTime}`;
@@ -1020,26 +1446,60 @@ function updateBookingSummary() {
   } else {
     summaryDateTime.textContent = "-";
   }
-
-  console.log("[Flow] Booking summary updated", {
-    selectedService,
-    selectedDate,
-    selectedTime,
-    selectedPayment,
-    selectedRegion,
-  });
 }
 
 function getStatusClassName(status) {
   if (status === "confirmed") {
     return "status-confirmed";
   }
-
   if (status === "cancelled") {
     return "status-cancelled";
   }
-
   return "status-pending";
+}
+
+function getStatusLabel(status) {
+  if (status === "pending_payment") {
+    return "aguardando comprovante";
+  }
+  if (status === "cancelled") {
+    return "cancelado";
+  }
+  return "confirmado";
+}
+
+function getPaymentStatusClassName(status) {
+  return status === "paid" ? "payment-paid" : "payment-pending";
+}
+
+function getPaymentStatusLabel(status) {
+  return status === "paid" ? "pago" : "pendente";
+}
+
+function getProfessionalApplicationStatusClassName(status) {
+  if (status === "approved") {
+    return "status-approved";
+  }
+  if (status === "blocked") {
+    return "status-blocked";
+  }
+  if (status === "in_contact") {
+    return "status-in-contact";
+  }
+  return "status-pending";
+}
+
+function getProfessionalApplicationStatusLabel(status) {
+  if (status === "approved") {
+    return "aprovada";
+  }
+  if (status === "blocked") {
+    return "bloqueada";
+  }
+  if (status === "in_contact") {
+    return "em contato";
+  }
+  return "pendente";
 }
 
 function getAvailabilityArray() {
@@ -1050,20 +1510,59 @@ function getAppointmentsArray() {
   return Array.isArray(state.appointments) ? state.appointments : [];
 }
 
-function getPaymentStatusClassName(status) {
-  if (status === "paid") {
-    return "payment-paid";
-  }
-
-  return "payment-pending";
+function fallbackProfessionalImage() {
+  return "https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=900&q=80";
 }
 
-function getPaymentStatusLabel(status) {
-  if (status === "paid") {
-    return "pago";
+function cssEscape(value) {
+  if (window.CSS && typeof window.CSS.escape === "function") {
+    return window.CSS.escape(value);
+  }
+  return String(value).replace(/"/g, '\\"');
+}
+
+function escapeHtml(value) {
+  return String(value ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
+function escapeAttribute(value) {
+  return escapeHtml(value).replace(/`/g, "&#96;");
+}
+
+function formatDateTime(value) {
+  if (!value) {
+    return "Nao informado";
   }
 
-  return "pendente";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date);
+}
+
+function renderVideoEmbed(url, professionalName) {
+  const safeUrl = escapeHtml(url);
+  const youtubeMatch = url.match(/(?:youtube\.com\/watch\?v=|youtu\.be\/)([^&?/]+)/i);
+  if (youtubeMatch) {
+    return `<iframe src="https://www.youtube.com/embed/${escapeHtml(youtubeMatch[1])}" title="Video de ${escapeHtml(professionalName)}" loading="lazy" allowfullscreen></iframe>`;
+  }
+
+  const vimeoMatch = url.match(/vimeo\.com\/(\d+)/i);
+  if (vimeoMatch) {
+    return `<iframe src="https://player.vimeo.com/video/${escapeHtml(vimeoMatch[1])}" title="Video de ${escapeHtml(professionalName)}" loading="lazy" allowfullscreen></iframe>`;
+  }
+
+  return `<video controls preload="metadata" src="${safeUrl}"></video>`;
 }
 
 function getFieldValue(field) {
@@ -1087,7 +1586,6 @@ async function apiRequest(endpoint, options = {}) {
     requestOptions.headers["x-admin-password"] = state.adminPassword;
   }
 
-  // Avoid Content-Type on GET/HEAD so the request stays "simple" (no CORS preflight noise).
   if (method !== "GET" && method !== "HEAD") {
     requestOptions.headers["Content-Type"] = "application/json";
   }
@@ -1102,10 +1600,7 @@ async function apiRequest(endpoint, options = {}) {
   if (!response.ok) {
     const statusHint = `${response.status} ${response.statusText || ""}`.trim();
     const detailParts = [data.message, data.hint, data.code].filter(Boolean);
-    const message =
-      detailParts.join(" — ") || statusHint || "Falha na comunicacao com a API.";
-    console.error("[Flow] API error:", endpoint, statusHint, data);
-    throw new Error(message);
+    throw new Error(detailParts.join(" - ") || statusHint || "Falha na comunicacao com a API.");
   }
 
   return data;
@@ -1119,7 +1614,6 @@ function buildApiUrl(endpoint) {
 
   const host = window.location.hostname || "";
   if (host.endsWith("github.io")) {
-    console.warn("[Flow] apiBaseUrl empty on GitHub Pages; using fallback API:", FALLBACK_API_BASE);
     return `${FALLBACK_API_BASE}${endpoint}`;
   }
 

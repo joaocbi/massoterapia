@@ -30,7 +30,8 @@ async function initializeDatabase() {
       time_slots_json TEXT NOT NULL DEFAULT '[]',
       payment_methods_json TEXT NOT NULL DEFAULT '[]',
       allowed_weekdays_json TEXT NOT NULL DEFAULT '[1,2,3,4,5,6]',
-      blocked_dates_json TEXT NOT NULL DEFAULT '[]'
+      blocked_dates_json TEXT NOT NULL DEFAULT '[]',
+      professionals_json TEXT NOT NULL DEFAULT '[]'
     )
   `);
 
@@ -39,6 +40,10 @@ async function initializeDatabase() {
   await run(`
     CREATE TABLE IF NOT EXISTS appointments (
       id TEXT PRIMARY KEY,
+      professional_id TEXT NOT NULL DEFAULT 'legacy-professional',
+      professional_name TEXT NOT NULL DEFAULT '',
+      professional_whatsapp TEXT NOT NULL DEFAULT '',
+      professional_address TEXT NOT NULL DEFAULT '',
       customer_name TEXT NOT NULL,
       customer_phone TEXT NOT NULL,
       customer_email TEXT DEFAULT '',
@@ -49,6 +54,7 @@ async function initializeDatabase() {
       service_region TEXT DEFAULT '',
       customer_notes TEXT DEFAULT '',
       status TEXT NOT NULL DEFAULT 'confirmed',
+      active_booking INTEGER NOT NULL DEFAULT 1,
       payment_status TEXT NOT NULL DEFAULT 'pending',
       amount REAL NOT NULL DEFAULT 0,
       duration TEXT NOT NULL DEFAULT 'Sob consulta',
@@ -59,7 +65,27 @@ async function initializeDatabase() {
     )
   `);
 
+  await run(`
+    CREATE TABLE IF NOT EXISTS professional_applications (
+      id TEXT PRIMARY KEY,
+      full_name TEXT NOT NULL,
+      whatsapp TEXT NOT NULL,
+      email TEXT DEFAULT '',
+      city TEXT DEFAULT '',
+      instagram TEXT DEFAULT '',
+      specialties TEXT DEFAULT '',
+      message TEXT DEFAULT '',
+      accepted_terms INTEGER NOT NULL DEFAULT 0,
+      accepted_fee INTEGER NOT NULL DEFAULT 0,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at TEXT NOT NULL
+    )
+  `);
+
   await ensureAppointmentsColumns();
+  await ensureAppointmentBookingState();
+  await ensureLegacyProfessionalBackfill();
+  await ensureUniqueActiveAppointmentSlots();
 
   await run(`
     INSERT OR IGNORE INTO settings (
@@ -82,6 +108,7 @@ async function ensureSettingsColumns() {
   await addColumnIfMissing(existing, "payment_methods_json", "TEXT NOT NULL DEFAULT '[]'");
   await addColumnIfMissing(existing, "allowed_weekdays_json", "TEXT NOT NULL DEFAULT '[1,2,3,4,5,6]'");
   await addColumnIfMissing(existing, "blocked_dates_json", "TEXT NOT NULL DEFAULT '[]'");
+  await addColumnIfMissing(existing, "professionals_json", "TEXT NOT NULL DEFAULT '[]'");
 }
 
 async function addColumnIfMissing(existing, columnName, definition) {
@@ -96,9 +123,14 @@ async function ensureAppointmentsColumns() {
   const columns = await all(`PRAGMA table_info(appointments)`);
   const existing = new Set(columns.map((column) => column.name));
 
+  await addAppointmentColumnIfMissing(existing, "professional_id", "TEXT NOT NULL DEFAULT 'legacy-professional'");
+  await addAppointmentColumnIfMissing(existing, "professional_name", "TEXT NOT NULL DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "professional_whatsapp", "TEXT NOT NULL DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "professional_address", "TEXT NOT NULL DEFAULT ''");
   await addAppointmentColumnIfMissing(existing, "customer_email", "TEXT DEFAULT ''");
   await addAppointmentColumnIfMissing(existing, "service_region", "TEXT DEFAULT ''");
   await addAppointmentColumnIfMissing(existing, "customer_notes", "TEXT DEFAULT ''");
+  await addAppointmentColumnIfMissing(existing, "active_booking", "INTEGER NOT NULL DEFAULT 1");
   await addAppointmentColumnIfMissing(existing, "mercado_pago_preference_id", "TEXT DEFAULT ''");
   await addAppointmentColumnIfMissing(existing, "mercado_pago_payment_id", "TEXT DEFAULT ''");
   await addAppointmentColumnIfMissing(existing, "payment_url", "TEXT DEFAULT ''");
@@ -111,6 +143,81 @@ async function addAppointmentColumnIfMissing(existing, columnName, definition) {
 
   await run(`ALTER TABLE appointments ADD COLUMN ${columnName} ${definition}`);
   console.log("[Flow API] SQLite appointments: added missing column", columnName);
+}
+
+async function ensureAppointmentBookingState() {
+  await run(`
+    UPDATE appointments
+    SET active_booking = CASE WHEN status = 'cancelled' THEN 0 ELSE 1 END
+    WHERE active_booking NOT IN (0, 1)
+       OR (status = 'cancelled' AND active_booking != 0)
+       OR (status != 'cancelled' AND active_booking != 1)
+  `);
+}
+
+async function ensureLegacyProfessionalBackfill() {
+  await run(`
+    UPDATE appointments
+    SET
+      professional_id = CASE
+        WHEN professional_id IS NULL OR TRIM(professional_id) = '' THEN 'legacy-professional'
+        ELSE professional_id
+      END,
+      professional_name = CASE
+        WHEN professional_name IS NULL OR TRIM(professional_name) = '' THEN 'Profissional principal'
+        ELSE professional_name
+      END,
+      professional_whatsapp = CASE
+        WHEN professional_whatsapp IS NULL OR TRIM(professional_whatsapp) = '' THEN customer_phone
+        ELSE professional_whatsapp
+      END,
+      professional_address = CASE
+        WHEN professional_address IS NULL OR TRIM(professional_address) = '' THEN service_region
+        ELSE professional_address
+      END
+  `);
+}
+
+async function ensureUniqueActiveAppointmentSlots() {
+  await run(`DROP INDEX IF EXISTS appointments_unique_active_slot`);
+
+  const duplicatedSlots = await all(`
+    SELECT professional_id, appointment_date, appointment_time
+    FROM appointments
+    WHERE active_booking = 1
+    GROUP BY professional_id, appointment_date, appointment_time
+    HAVING COUNT(*) > 1
+  `);
+
+  for (const slot of duplicatedSlots) {
+    const rows = await all(
+      `
+        SELECT id
+        FROM appointments
+        WHERE professional_id = ? AND appointment_date = ? AND appointment_time = ? AND active_booking = 1
+        ORDER BY created_at ASC, id ASC
+      `,
+      [slot.professional_id, slot.appointment_date, slot.appointment_time]
+    );
+
+    for (const duplicate of rows.slice(1)) {
+      await run(
+        `
+          UPDATE appointments
+          SET status = 'cancelled', active_booking = 0
+          WHERE id = ?
+        `,
+        [duplicate.id]
+      );
+      console.warn("[Flow API] SQLite duplicate active slot auto-cancelled:", duplicate.id);
+    }
+  }
+
+  await run(`
+    CREATE UNIQUE INDEX IF NOT EXISTS appointments_unique_active_slot
+    ON appointments (professional_id, appointment_date, appointment_time)
+    WHERE active_booking = 1
+  `);
 }
 
 async function run(sql, params = []) {
