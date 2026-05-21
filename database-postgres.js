@@ -82,7 +82,7 @@ async function initializeDatabase() {
     await pool.query(`
       CREATE TABLE IF NOT EXISTS settings (
         id INTEGER PRIMARY KEY,
-        business_whatsapp TEXT NOT NULL DEFAULT '5511999999999',
+        business_whatsapp TEXT NOT NULL DEFAULT '5542991628586',
         mercado_pago_checkout TEXT NOT NULL DEFAULT 'https://www.mercadopago.com.br/',
         pix_key TEXT NOT NULL DEFAULT '',
         business_address TEXT NOT NULL DEFAULT '',
@@ -137,12 +137,19 @@ async function initializeDatabase() {
         accepted_terms BOOLEAN NOT NULL DEFAULT FALSE,
         accepted_fee BOOLEAN NOT NULL DEFAULT FALSE,
         status TEXT NOT NULL DEFAULT 'pending',
+        monthly_fee DOUBLE PRECISION NOT NULL DEFAULT 150,
+        subscription_status TEXT NOT NULL DEFAULT 'awaiting_payment',
+        payment_confirmed_at TEXT DEFAULT '',
+        next_due_date TEXT DEFAULT '',
+        blocked_at TEXT DEFAULT '',
+        internal_notes TEXT DEFAULT '',
         created_at TEXT NOT NULL
       )
     `);
 
     await ensurePostgresSettingsColumns(pool);
     await ensurePostgresAppointmentsColumns(pool);
+    await ensurePostgresProfessionalApplicationsColumns(pool);
     await ensurePostgresAppointmentBookingState(pool);
     await ensurePostgresLegacyProfessionalBackfill(pool);
     await ensurePostgresUniqueActiveAppointmentSlots(pool);
@@ -150,6 +157,12 @@ async function initializeDatabase() {
     await pool.query(`
       INSERT INTO settings (id) VALUES (1)
       ON CONFLICT (id) DO NOTHING
+    `);
+
+    await pool.query(`
+      UPDATE settings
+      SET business_whatsapp = '5542991628586'
+      WHERE business_whatsapp IN ('', '5511999999999')
     `);
   })();
 
@@ -227,6 +240,32 @@ async function ensurePostgresAppointmentsColumns(pool) {
 
     await pool.query(`ALTER TABLE appointments ADD COLUMN ${name} ${definition}`);
     console.log("[Flow API PG] appointments: added missing column", name);
+  }
+}
+
+async function ensurePostgresProfessionalApplicationsColumns(pool) {
+  const { rows } = await pool.query(`
+    SELECT column_name
+    FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'professional_applications'
+  `);
+  const existing = new Set(rows.map((row) => String(row.column_name).toLowerCase()));
+  const columns = [
+    ["monthly_fee", "DOUBLE PRECISION NOT NULL DEFAULT 150"],
+    ["subscription_status", "TEXT NOT NULL DEFAULT 'awaiting_payment'"],
+    ["payment_confirmed_at", "TEXT DEFAULT ''"],
+    ["next_due_date", "TEXT DEFAULT ''"],
+    ["blocked_at", "TEXT DEFAULT ''"],
+    ["internal_notes", "TEXT DEFAULT ''"],
+  ];
+
+  for (const [name, definition] of columns) {
+    if (existing.has(name)) {
+      continue;
+    }
+
+    await pool.query(`ALTER TABLE professional_applications ADD COLUMN ${name} ${definition}`);
+    console.log("[Flow API PG] professional_applications: added missing column", name);
   }
 }
 

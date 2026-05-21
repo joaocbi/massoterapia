@@ -66,19 +66,39 @@ Depois informe a senha administrativa e clique em `Entrar`.
 
 No painel admin voce pode configurar:
 
-- Servicos de massagens
-- Horarios disponiveis
-- Formas de pagamento
-- Dias de atendimento
+- WhatsApp geral da plataforma
+- Chave Pix institucional
+- Texto institucional ou endereco de apoio
 - Datas indisponiveis
+- Perfis completos de cada profissional
+- Solicitacoes de entrada na plataforma
+- Status comercial e status da mensalidade das parceiras
 
 Depois clique em `Salvar configuracoes`.
 
 ### Formatos de preenchimento
 
-#### Servicos de massagens
+#### Perfis profissionais
 
-Uma linha por servico no formato:
+Cada profissional e cadastrada em um card proprio com:
+
+- identificacao publica
+- nome e chamada comercial
+- WhatsApp
+- endereco, bairro e cidade
+- foto principal, galeria e videos
+- bio comercial
+- detalhes dos servicos
+- especialidades
+- limites e regras de atendimento
+- servicos
+- horarios
+- formas de pagamento
+- dias da semana atendidos
+
+#### Servicos
+
+No campo `Servicos`, use uma linha por servico no formato:
 
 `Nome|Duracao|Preco`
 
@@ -86,9 +106,9 @@ Exemplo:
 
 `Massagem Relaxante Flow|60 min|180`
 
-#### Horarios disponiveis
+#### Horarios
 
-Formato `HH:MM` separados por virgula.
+No campo `Horarios`, use `HH:MM` separados por virgula.
 
 Exemplo:
 
@@ -96,17 +116,17 @@ Exemplo:
 
 #### Formas de pagamento
 
-Uma por linha.
+No campo `Formas de pagamento`, use itens separados por virgula.
 
 Exemplo:
 
-`Pix`
-`Cartao de Credito`
-`Cartao de Debito`
+`Pix, Cartao de Credito, Cartao de Debito`
 
 #### Dias de atendimento
 
-Use numeros separados por virgula:
+No card da profissional, marque os dias desejados.
+
+Referencia dos numeros usados internamente:
 
 - `0` Domingo
 - `1` Segunda
@@ -135,6 +155,25 @@ No painel voce consegue:
 - filtrar por cliente, status e pagamento
 - confirmar ou cancelar agendamentos
 - marcar pagamento como pago
+
+### Gestao de candidaturas e mensalidade das parceiras
+
+No painel voce consegue:
+
+- visualizar cada solicitacao publica de entrada
+- marcar a etapa comercial como `pendente`, `em contato`, `aprovada` ou `bloqueada`
+- confirmar o primeiro pagamento da mensalidade
+- registrar atraso
+- bloquear a parceria
+- anotar observacoes internas
+- aproveitar a solicitacao para criar um perfil de profissional ja preenchido
+
+### Regras da mensalidade
+
+- O valor padrao da plataforma e `R$ 150,00` por mes.
+- Ao marcar `Pagamento ok`, o sistema registra a confirmacao e cria o proximo vencimento em `30 dias`.
+- Se o vencimento passar, a assinatura pode ficar `em atraso`.
+- Se o atraso ultrapassar `60 dias`, a solicitacao/parceria pode ser movida para `bloqueada`.
 
 ### Exportacoes
 

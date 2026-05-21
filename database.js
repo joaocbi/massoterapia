@@ -22,7 +22,7 @@ async function initializeDatabase() {
   await run(`
     CREATE TABLE IF NOT EXISTS settings (
       id INTEGER PRIMARY KEY CHECK (id = 1),
-      business_whatsapp TEXT NOT NULL DEFAULT '5511999999999',
+      business_whatsapp TEXT NOT NULL DEFAULT '5542991628586',
       mercado_pago_checkout TEXT NOT NULL DEFAULT 'https://www.mercadopago.com.br/',
       pix_key TEXT NOT NULL DEFAULT '',
       business_address TEXT NOT NULL DEFAULT '',
@@ -78,11 +78,18 @@ async function initializeDatabase() {
       accepted_terms INTEGER NOT NULL DEFAULT 0,
       accepted_fee INTEGER NOT NULL DEFAULT 0,
       status TEXT NOT NULL DEFAULT 'pending',
+      monthly_fee REAL NOT NULL DEFAULT 150,
+      subscription_status TEXT NOT NULL DEFAULT 'awaiting_payment',
+      payment_confirmed_at TEXT DEFAULT '',
+      next_due_date TEXT DEFAULT '',
+      blocked_at TEXT DEFAULT '',
+      internal_notes TEXT DEFAULT '',
       created_at TEXT NOT NULL
     )
   `);
 
   await ensureAppointmentsColumns();
+  await ensureProfessionalApplicationsColumns();
   await ensureAppointmentBookingState();
   await ensureLegacyProfessionalBackfill();
   await ensureUniqueActiveAppointmentSlots();
@@ -95,8 +102,30 @@ async function initializeDatabase() {
       pix_key,
       business_address
     )
-    VALUES (1, '5511999999999', 'https://www.mercadopago.com.br/', '', '')
+    VALUES (1, '5542991628586', 'https://www.mercadopago.com.br/', '', '')
   `);
+
+  await run(`
+    UPDATE settings
+    SET business_whatsapp = '5542991628586'
+    WHERE business_whatsapp IN ('', '5511999999999')
+  `);
+}
+
+async function ensureProfessionalApplicationsColumns() {
+  const columns = await all(`PRAGMA table_info(professional_applications)`);
+  const existing = new Set(columns.map((column) => column.name));
+
+  await addProfessionalApplicationColumnIfMissing(existing, "monthly_fee", "REAL NOT NULL DEFAULT 150");
+  await addProfessionalApplicationColumnIfMissing(
+    existing,
+    "subscription_status",
+    "TEXT NOT NULL DEFAULT 'awaiting_payment'"
+  );
+  await addProfessionalApplicationColumnIfMissing(existing, "payment_confirmed_at", "TEXT DEFAULT ''");
+  await addProfessionalApplicationColumnIfMissing(existing, "next_due_date", "TEXT DEFAULT ''");
+  await addProfessionalApplicationColumnIfMissing(existing, "blocked_at", "TEXT DEFAULT ''");
+  await addProfessionalApplicationColumnIfMissing(existing, "internal_notes", "TEXT DEFAULT ''");
 }
 
 async function ensureSettingsColumns() {
@@ -143,6 +172,15 @@ async function addAppointmentColumnIfMissing(existing, columnName, definition) {
 
   await run(`ALTER TABLE appointments ADD COLUMN ${columnName} ${definition}`);
   console.log("[Flow API] SQLite appointments: added missing column", columnName);
+}
+
+async function addProfessionalApplicationColumnIfMissing(existing, columnName, definition) {
+  if (existing.has(columnName)) {
+    return;
+  }
+
+  await run(`ALTER TABLE professional_applications ADD COLUMN ${columnName} ${definition}`);
+  console.log("[Flow API] SQLite professional_applications: added missing column", columnName);
 }
 
 async function ensureAppointmentBookingState() {

@@ -168,6 +168,7 @@ app.get("/api/appointments", requireAdmin, async (request, response, next) => {
 
 app.get("/api/professional-applications", requireAdmin, async (request, response, next) => {
   try {
+    await syncProfessionalApplicationSubscriptions();
     const rows = await all(`
       SELECT *
       FROM professional_applications
@@ -207,9 +208,15 @@ app.post("/api/professional-applications", async (request, response, next) => {
           accepted_terms,
           accepted_fee,
           status,
+          monthly_fee,
+          subscription_status,
+          payment_confirmed_at,
+          next_due_date,
+          blocked_at,
+          internal_notes,
           created_at
         )
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
       `,
       [
         applicationId,
@@ -223,6 +230,12 @@ app.post("/api/professional-applications", async (request, response, next) => {
         payload.acceptedTerms ? 1 : 0,
         payload.acceptedFee ? 1 : 0,
         "pending",
+        150,
+        "awaiting_payment",
+        "",
+        "",
+        "",
+        "",
         createdAt,
       ]
     );
@@ -246,15 +259,31 @@ app.patch("/api/professional-applications/:id", requireAdmin, async (request, re
       return;
     }
 
-    const nextStatus = sanitizeProfessionalApplicationStatus(request.body.status || application.status);
+    const updates = sanitizeProfessionalApplicationUpdate(request.body || {}, application);
 
     await run(
       `
         UPDATE professional_applications
-        SET status = ?
+        SET
+          status = ?,
+          monthly_fee = ?,
+          subscription_status = ?,
+          payment_confirmed_at = ?,
+          next_due_date = ?,
+          blocked_at = ?,
+          internal_notes = ?
         WHERE id = ?
       `,
-      [nextStatus, applicationId]
+      [
+        updates.status,
+        updates.monthlyFee,
+        updates.subscriptionStatus,
+        updates.paymentConfirmedAt,
+        updates.nextDueDate,
+        updates.blockedAt,
+        updates.internalNotes,
+        applicationId,
+      ]
     );
 
     const updated = await get(`SELECT * FROM professional_applications WHERE id = ?`, [applicationId]);
@@ -580,13 +609,13 @@ async function loadSettings() {
       timeSlots,
       paymentMethods,
       allowedWeekdays,
-      businessWhatsapp: row?.business_whatsapp || "5511999999999",
+      businessWhatsapp: sanitizePhone(row?.business_whatsapp),
       businessAddress: row?.business_address || "",
     }
   );
 
   return {
-    businessWhatsapp: row?.business_whatsapp || "5511999999999",
+    businessWhatsapp: sanitizePhone(row?.business_whatsapp),
     mercadoPagoCheckout: row?.mercado_pago_checkout || "https://www.mercadopago.com.br/",
     pixKey: row?.pix_key || "",
     businessAddress: row?.business_address || "",
@@ -625,6 +654,71 @@ function sanitizeProfessionalApplicationPayload(payload) {
     message: String(payload.message || "").trim().slice(0, 1000),
     acceptedTerms: Boolean(payload.acceptedTerms),
     acceptedFee: Boolean(payload.acceptedFee),
+  };
+}
+
+function sanitizeProfessionalApplicationUpdate(payload, currentApplication) {
+  const currentStatus = sanitizeProfessionalApplicationStatus(currentApplication?.status);
+  const currentSubscriptionStatus = sanitizeProfessionalApplicationSubscriptionStatus(
+    currentApplication?.subscription_status
+  );
+  const currentMonthlyFee = Number(currentApplication?.monthly_fee || 150);
+  const now = new Date();
+
+  let nextStatus = sanitizeProfessionalApplicationStatus(payload.status || currentStatus);
+  let nextSubscriptionStatus = sanitizeProfessionalApplicationSubscriptionStatus(
+    payload.subscriptionStatus || currentSubscriptionStatus
+  );
+  let paymentConfirmedAt = sanitizeIsoDateTime(payload.paymentConfirmedAt || currentApplication?.payment_confirmed_at);
+  let nextDueDate = sanitizeIsoDate(payload.nextDueDate || currentApplication?.next_due_date);
+  let blockedAt = sanitizeIsoDateTime(payload.blockedAt || currentApplication?.blocked_at);
+  const monthlyFee = sanitizeMonthlyFee(payload.monthlyFee ?? currentMonthlyFee);
+  const internalNotes = String(payload.internalNotes ?? currentApplication?.internal_notes ?? "")
+    .trim()
+    .slice(0, 1000);
+
+  if (payload.action === "payment_confirmed") {
+    nextStatus = "approved";
+    nextSubscriptionStatus = "active";
+    paymentConfirmedAt = now.toISOString();
+    nextDueDate = addDays(now, 30).toISOString().slice(0, 10);
+    blockedAt = "";
+  }
+
+  if (payload.action === "mark_overdue") {
+    nextSubscriptionStatus = "overdue";
+  }
+
+  if (payload.action === "block_subscription") {
+    nextStatus = "blocked";
+    nextSubscriptionStatus = "blocked";
+    blockedAt = now.toISOString();
+  }
+
+  if (nextSubscriptionStatus === "active" && !nextDueDate) {
+    nextDueDate = addDays(now, 30).toISOString().slice(0, 10);
+  }
+
+  if (nextSubscriptionStatus !== "blocked" && nextStatus === "blocked") {
+    nextSubscriptionStatus = "blocked";
+  }
+
+  if (nextSubscriptionStatus === "blocked" && !blockedAt) {
+    blockedAt = now.toISOString();
+  }
+
+  if (nextSubscriptionStatus !== "blocked") {
+    blockedAt = "";
+  }
+
+  return {
+    status: nextStatus,
+    monthlyFee,
+    subscriptionStatus: nextSubscriptionStatus,
+    paymentConfirmedAt,
+    nextDueDate,
+    blockedAt,
+    internalNotes,
   };
 }
 
@@ -747,7 +841,8 @@ function sanitizeProfessionalId(value) {
 }
 
 function sanitizePhone(value) {
-  return String(value || "5511999999999").replace(/\D/g, "");
+  const normalized = String(value || "").replace(/\D/g, "");
+  return normalized === "5511999999999" ? "" : normalized;
 }
 
 function sanitizeServices(value) {
@@ -868,6 +963,88 @@ function sanitizeProfessionalApplicationStatus(status) {
   return ["pending", "in_contact", "approved", "blocked"].includes(status) ? status : "pending";
 }
 
+function sanitizeProfessionalApplicationSubscriptionStatus(status) {
+  return ["awaiting_payment", "active", "overdue", "blocked"].includes(status)
+    ? status
+    : "awaiting_payment";
+}
+
+function sanitizeMonthlyFee(value) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount) || amount <= 0) {
+    return 150;
+  }
+  return Math.round(amount * 100) / 100;
+}
+
+function sanitizeIsoDate(value) {
+  const normalized = String(value || "").trim();
+  return /^\d{4}-\d{2}-\d{2}$/.test(normalized) ? normalized : "";
+}
+
+function sanitizeIsoDateTime(value) {
+  const normalized = String(value || "").trim();
+  if (!normalized) {
+    return "";
+  }
+  const date = new Date(normalized);
+  return Number.isNaN(date.getTime()) ? "" : date.toISOString();
+}
+
+async function syncProfessionalApplicationSubscriptions() {
+  const rows = await all(`
+    SELECT id, status, subscription_status, next_due_date
+    FROM professional_applications
+  `);
+  const today = new Date();
+
+  for (const row of rows) {
+    const dueDate = parseIsoDate(row.next_due_date);
+    if (!dueDate) {
+      continue;
+    }
+
+    const overdueDays = daysBetween(dueDate, today);
+    const currentSubscriptionStatus = sanitizeProfessionalApplicationSubscriptionStatus(row.subscription_status);
+    const currentStatus = sanitizeProfessionalApplicationStatus(row.status);
+
+    if (overdueDays >= 60 && currentSubscriptionStatus !== "blocked") {
+      await run(
+        `
+          UPDATE professional_applications
+          SET subscription_status = ?, status = ?, blocked_at = ?
+          WHERE id = ?
+        `,
+        ["blocked", "blocked", today.toISOString(), row.id]
+      );
+      continue;
+    }
+
+    if (overdueDays > 0 && currentSubscriptionStatus === "active") {
+      await run(
+        `
+          UPDATE professional_applications
+          SET subscription_status = ?
+          WHERE id = ?
+        `,
+        ["overdue", row.id]
+      );
+      continue;
+    }
+
+    if (overdueDays <= 0 && currentSubscriptionStatus === "overdue" && currentStatus !== "blocked") {
+      await run(
+        `
+          UPDATE professional_applications
+          SET subscription_status = ?
+          WHERE id = ?
+        `,
+        ["active", row.id]
+      );
+    }
+  }
+}
+
 function mapAppointmentAvailability(row) {
   return {
     id: row.id,
@@ -918,8 +1095,34 @@ function mapProfessionalApplicationRow(row) {
     acceptedTerms: Boolean(row.accepted_terms),
     acceptedFee: Boolean(row.accepted_fee),
     status: row.status,
+    monthlyFee: Number(row.monthly_fee || 150),
+    subscriptionStatus: sanitizeProfessionalApplicationSubscriptionStatus(row.subscription_status),
+    paymentConfirmedAt: row.payment_confirmed_at,
+    nextDueDate: row.next_due_date,
+    blockedAt: row.blocked_at,
+    internalNotes: row.internal_notes,
     createdAt: row.created_at,
   };
+}
+
+function addDays(date, days) {
+  const copy = new Date(date.getTime());
+  copy.setDate(copy.getDate() + days);
+  return copy;
+}
+
+function parseIsoDate(value) {
+  const normalized = sanitizeIsoDate(value);
+  if (!normalized) {
+    return null;
+  }
+  const date = new Date(`${normalized}T00:00:00`);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function daysBetween(startDate, endDate) {
+  const oneDay = 24 * 60 * 60 * 1000;
+  return Math.floor((endDate.getTime() - startDate.getTime()) / oneDay);
 }
 
 async function createMercadoPagoPreference({ appointmentId, payload, serviceInfo, settings }) {

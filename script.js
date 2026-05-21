@@ -10,7 +10,7 @@ const DEFAULT_BOUNDARY_OPTIONS = [
 ];
 
 const DEFAULT_SETTINGS = {
-  businessWhatsapp: "5511999999999",
+  businessWhatsapp: "5542991628586",
   mercadoPagoCheckout: "",
   pixKey: "",
   businessAddress: "",
@@ -293,17 +293,25 @@ async function handleProfessionalApplicationSubmit(event) {
       body: payload,
     });
 
+    const summaryMessage = buildProfessionalApplicationWhatsappSummary(payload);
+
     applicationConfirmationTitle.textContent = `${payload.fullName}, sua solicitacao foi recebida.`;
-    applicationConfirmationText.textContent =
-      "Agora siga para o WhatsApp para receber a orientacao de pagamento, enviar o comprovante e concluir a analise do cadastro.";
+    applicationConfirmationText.textContent = state.settings.businessWhatsapp
+      ? "Seu resumo de cadastro foi preparado para o WhatsApp da plataforma. Envie a mensagem para receber a orientacao de pagamento, concluir a confirmacao e permitir a mensagem de boas-vindas."
+      : "Sua solicitacao foi salva no sistema. Configure o WhatsApp oficial da plataforma no painel admin para tambem receber o resumo automaticamente por WhatsApp.";
     applicationConfirmationCard?.classList.remove("hidden");
 
     const applicationWhatsappButton = document.getElementById("applicationWhatsappButton");
     if (applicationWhatsappButton) {
-      applicationWhatsappButton.href = buildWhatsappUrl(
+      setWhatsappLinkState(
+        applicationWhatsappButton,
         state.settings.businessWhatsapp,
-        `Ola, acabei de solicitar meu cadastro na plataforma ${BRAND_NAME}. Meu nome e ${payload.fullName} e estou ciente da mensalidade de R$ 150,00. Gostaria de receber a orientacao para pagamento e confirmacao pelo WhatsApp.`
+        summaryMessage
       );
+
+      if (sanitizeWhatsappNumber(state.settings.businessWhatsapp)) {
+        window.open(applicationWhatsappButton.href, "_blank", "noopener,noreferrer");
+      }
     }
 
     professionalApplicationForm.reset();
@@ -330,7 +338,8 @@ function showConfirmation(appointment) {
     `Pagamento escolhido: ${paymentText}. ` +
     `Envie o comprovante diretamente para o WhatsApp da profissional para concluir a confirmacao.`;
 
-  confirmationWhatsappLink.href = buildWhatsappUrl(
+  setWhatsappLinkState(
+    confirmationWhatsappLink,
     appointment.professionalWhatsapp || selectedProfessional?.whatsapp || state.settings.businessWhatsapp,
     message
   );
@@ -794,6 +803,11 @@ function renderProfessionalApplications() {
           </div>
           <h5>${escapeHtml(application.fullName)}</h5>
           <p>Enviado em: ${escapeHtml(formatDateTime(application.createdAt))}</p>
+          <p>Mensalidade: ${escapeHtml(formatCurrency(application.monthlyFee || 150))}</p>
+          <p>Assinatura: ${escapeHtml(getProfessionalApplicationSubscriptionLabel(application.subscriptionStatus))}</p>
+          <p>Pagamento confirmado em: ${escapeHtml(formatDateTime(application.paymentConfirmedAt))}</p>
+          <p>Proximo vencimento: ${escapeHtml(formatShortDate(application.nextDueDate))}</p>
+          <p>Bloqueio em: ${escapeHtml(formatDateTime(application.blockedAt))}</p>
           <p>WhatsApp: ${escapeHtml(application.whatsapp)}</p>
           <p>E-mail: ${escapeHtml(application.email || "Nao informado")}</p>
           <p>Cidade: ${escapeHtml(application.city || "Nao informado")}</p>
@@ -801,6 +815,10 @@ function renderProfessionalApplications() {
           <p>Especialidades: ${escapeHtml(application.specialties || "Nao informado")}</p>
           <p>${escapeHtml(application.message || "Sem mensagem adicional.")}</p>
           <p>Aceitou regras: ${application.acceptedTerms ? "Sim" : "Nao"} - Aceitou mensalidade: ${application.acceptedFee ? "Sim" : "Nao"}</p>
+          <label class="full-width">
+            <span class="field-note">Observacoes internas</span>
+            <textarea data-application-note="${application.id}" rows="3" placeholder="Contato feito, comprovante recebido, pendencias, observacoes comerciais">${escapeHtml(application.internalNotes || "")}</textarea>
+          </label>
         </div>
       </div>
       <div class="appointment-item-actions">
@@ -809,6 +827,10 @@ function renderProfessionalApplications() {
         <button class="secondary-button" data-application-status="in_contact" data-id="${application.id}" type="button">Em contato</button>
         <button class="secondary-button" data-application-status="approved" data-id="${application.id}" type="button">Aprovar</button>
         <button class="ghost-button" data-application-status="blocked" data-id="${application.id}" type="button">Bloquear</button>
+        <button class="secondary-button" data-application-action="payment_confirmed" data-id="${application.id}" type="button">Pagamento ok</button>
+        <button class="secondary-button" data-application-action="mark_overdue" data-id="${application.id}" type="button">Marcar atraso</button>
+        <button class="secondary-button" data-application-action="create_profile" data-id="${application.id}" type="button">Criar perfil</button>
+        <button class="ghost-button" data-application-action="save_note" data-id="${application.id}" type="button">Salvar observacao</button>
       </div>
     `;
     professionalApplicationsList.appendChild(item);
@@ -817,6 +839,12 @@ function renderProfessionalApplications() {
   professionalApplicationsList.querySelectorAll("button[data-application-status]").forEach((button) => {
     button.addEventListener("click", async () => {
       await handleProfessionalApplicationAction(button.dataset.applicationStatus, button.dataset.id);
+    });
+  });
+
+  professionalApplicationsList.querySelectorAll("button[data-application-action]").forEach((button) => {
+    button.addEventListener("click", async () => {
+      await handleProfessionalApplicationUiAction(button.dataset.applicationAction, button.dataset.id);
     });
   });
 }
@@ -829,6 +857,30 @@ async function handleProfessionalApplicationAction(nextStatus, applicationId) {
 
   await updateProfessionalApplication(applicationId, {
     status: nextStatus,
+  });
+}
+
+async function handleProfessionalApplicationUiAction(action, applicationId) {
+  const application = state.professionalApplications.find((item) => item.id === applicationId);
+  if (!application) {
+    return;
+  }
+
+  if (action === "create_profile") {
+    createProfessionalFromApplication(application);
+    return;
+  }
+
+  if (action === "save_note") {
+    const noteField = professionalApplicationsList.querySelector(`textarea[data-application-note="${applicationId}"]`);
+    await updateProfessionalApplication(applicationId, {
+      internalNotes: noteField ? noteField.value.trim() : "",
+    });
+    return;
+  }
+
+  await updateProfessionalApplication(applicationId, {
+    action,
   });
 }
 
@@ -852,14 +904,11 @@ function refreshWhatsappLinks() {
   const genericMessage = selectedProfessional
     ? `Ola, gostaria de saber mais sobre os atendimentos da ${selectedProfessional.name}.`
     : `Ola, gostaria de saber mais sobre os atendimentos da ${BRAND_NAME}.`;
-  const url = buildWhatsappUrl(
-    selectedProfessional?.whatsapp || state.settings.businessWhatsapp,
-    genericMessage
-  );
+  const contactPhone = selectedProfessional?.whatsapp || state.settings.businessWhatsapp;
 
-  document.getElementById("heroWhatsappButton").href = url;
-  document.getElementById("formWhatsappButton").href = url;
-  document.getElementById("floatingWhatsappButton").href = url;
+  setWhatsappLinkState(document.getElementById("heroWhatsappButton"), contactPhone, genericMessage);
+  setWhatsappLinkState(document.getElementById("formWhatsappButton"), contactPhone, genericMessage);
+  setWhatsappLinkState(document.getElementById("floatingWhatsappButton"), contactPhone, genericMessage);
   refreshApplicationWhatsappLink();
 }
 
@@ -976,10 +1025,29 @@ function refreshApplicationWhatsappLink() {
     return;
   }
 
-  button.href = buildWhatsappUrl(
+  setWhatsappLinkState(
+    button,
     state.settings.businessWhatsapp,
     `Ola, tenho interesse em me cadastrar como profissional na plataforma ${BRAND_NAME}. Gostaria de receber as orientacoes sobre regras, mensalidade e confirmacao do pagamento.`
   );
+}
+
+function createProfessionalFromApplication(application) {
+  const professionalDraft = createEmptyProfessional(state.settings.professionals.length + 1);
+  professionalDraft.id = sanitizeSlug(application.fullName || `profissional-${Date.now()}`) || `profissional-${Date.now()}`;
+  professionalDraft.name = application.fullName || "";
+  professionalDraft.role = "Profissional parceira";
+  professionalDraft.whatsapp = sanitizeWhatsappNumber(application.whatsapp);
+  professionalDraft.city = application.city || "";
+  professionalDraft.bio = application.message || "";
+  professionalDraft.specialties = parseCommaSeparatedList(application.specialties || "");
+  professionalDraft.serviceDetails =
+    "Perfil criado a partir da solicitacao publica. Complete servicos, agenda, endereco, pagamentos e galeria antes de publicar.";
+
+  const editorCard = buildProfessionalEditorCard(professionalDraft);
+  professionalsEditor.appendChild(editorCard);
+  syncProfessionalsPreviewFromEditor();
+  editorCard.scrollIntoView({ behavior: "smooth", block: "center" });
 }
 
 function handleAddProfessional() {
@@ -1233,12 +1301,44 @@ function buildWhatsappMessage(appointment) {
   );
 }
 
+function buildProfessionalApplicationWhatsappSummary(payload) {
+  return [
+    `Ola, uma nova candidata concluiu o cadastro na plataforma ${BRAND_NAME}.`,
+    `Nome: ${payload.fullName || "Nao informado"}`,
+    `WhatsApp: ${payload.whatsapp || "Nao informado"}`,
+    `E-mail: ${payload.email || "Nao informado"}`,
+    `Cidade: ${payload.city || "Nao informado"}`,
+    `Instagram: ${payload.instagram || "Nao informado"}`,
+    `Especialidades: ${payload.specialties || "Nao informado"}`,
+    `Apresentacao: ${payload.message || "Nao informada"}`,
+    "Aceites confirmados: regras da plataforma e mensalidade de R$ 150,00.",
+    "Use esta mensagem para dar boas-vindas, agradecer e orientar o pagamento/confirmacao.",
+  ].join(" ");
+}
+
 function buildWhatsappUrl(phone, message) {
-  return `https://wa.me/${sanitizeWhatsappNumber(phone)}?text=${encodeURIComponent(message)}`;
+  const sanitizedPhone = sanitizeWhatsappNumber(phone);
+  if (!sanitizedPhone) {
+    return "#";
+  }
+  return `https://wa.me/${sanitizedPhone}?text=${encodeURIComponent(message)}`;
 }
 
 function sanitizeWhatsappNumber(phone) {
-  return (phone || DEFAULT_SETTINGS.businessWhatsapp).replace(/\D/g, "");
+  return String(phone || "").replace(/\D/g, "");
+}
+
+function setWhatsappLinkState(element, phone, message) {
+  if (!element) {
+    return;
+  }
+
+  const sanitizedPhone = sanitizeWhatsappNumber(phone);
+  const isEnabled = Boolean(sanitizedPhone);
+  element.href = isEnabled ? buildWhatsappUrl(sanitizedPhone, message) : "#";
+  element.classList.toggle("is-disabled", !isEnabled);
+  element.setAttribute("aria-disabled", isEnabled ? "false" : "true");
+  element.tabIndex = isEnabled ? 0 : -1;
 }
 
 function formatDate(dateString) {
@@ -1294,7 +1394,7 @@ function sanitizeProfessionalsArray(value) {
       id: String(professional?.id || "").trim(),
       name: String(professional?.name || "").trim(),
       role: String(professional?.role || "Profissional").trim(),
-      whatsapp: sanitizeWhatsappNumber(professional?.whatsapp || DEFAULT_SETTINGS.businessWhatsapp),
+      whatsapp: sanitizeWhatsappNumber(professional?.whatsapp),
       address: String(professional?.address || "").trim(),
       neighborhood: String(professional?.neighborhood || "").trim(),
       city: String(professional?.city || "").trim(),
@@ -1396,7 +1496,7 @@ function createEmptyProfessional(index) {
     id: `profissional-${index}`,
     name: "",
     role: "",
-    whatsapp: state.settings.businessWhatsapp || DEFAULT_SETTINGS.businessWhatsapp,
+    whatsapp: state.settings.businessWhatsapp || "",
     address: "",
     neighborhood: "",
     city: "",
@@ -1548,6 +1648,31 @@ function formatDateTime(value) {
     dateStyle: "short",
     timeStyle: "short",
   }).format(date);
+}
+
+function formatShortDate(value) {
+  if (!value) {
+    return "Nao informado";
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(String(value))) {
+    return formatDate(String(value));
+  }
+
+  return formatDateTime(value);
+}
+
+function getProfessionalApplicationSubscriptionLabel(status) {
+  if (status === "active") {
+    return "mensalidade ativa";
+  }
+  if (status === "overdue") {
+    return "em atraso";
+  }
+  if (status === "blocked") {
+    return "bloqueada";
+  }
+  return "aguardando pagamento";
 }
 
 function renderVideoEmbed(url, professionalName) {
